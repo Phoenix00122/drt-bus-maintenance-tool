@@ -1,15 +1,20 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: DRT Bus Maintenance Forecasting API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: buses
+    description: Bus fleet management
+  - name: maintenance
+    description: Maintenance forecasting
+  - name: parts
+    description: Parts management
 paths:
   /healthz:
     get:
@@ -24,6 +29,153 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /buses:
+    get:
+      operationId: getBuses
+      tags: [buses]
+      summary: Get all buses
+      responses:
+        "200":
+          description: List of buses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Bus"
+    post:
+      operationId: createBus
+      tags: [buses]
+      summary: Create a bus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBusRequest"
+      responses:
+        "201":
+          description: Bus created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bus"
+
+  /buses/{id}:
+    put:
+      operationId: updateBus
+      tags: [buses]
+      summary: Update a bus
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBusRequest"
+      responses:
+        "200":
+          description: Bus updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bus"
+    delete:
+      operationId: deleteBus
+      tags: [buses]
+      summary: Delete a bus
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Bus deleted
+
+  /forecast:
+    post:
+      operationId: generateForecast
+      tags: [maintenance]
+      summary: Generate PM forecast
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForecastRequest"
+      responses:
+        "200":
+          description: Forecast results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForecastResponse"
+
+  /pm-schedules:
+    get:
+      operationId: getPmSchedules
+      tags: [maintenance]
+      summary: Get PM schedule templates
+      responses:
+        "200":
+          description: List of PM schedules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PmSchedule"
+
+  /parts:
+    get:
+      operationId: getParts
+      tags: [parts]
+      summary: Get all parts
+      responses:
+        "200":
+          description: List of parts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Part"
+
+  /parts-bundles:
+    get:
+      operationId: getPartsBundles
+      tags: [parts]
+      summary: Get suggested parts bundles
+      parameters:
+        - name: busId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: months
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 3
+      responses:
+        "200":
+          description: Parts bundles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PartsBundle"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +186,350 @@ components:
       required:
         - status
 
+    Bus:
+      type: object
+      properties:
+        id:
+          type: integer
+        busNumber:
+          type: string
+        model:
+          type: string
+        year:
+          type: integer
+        currentOdometer:
+          type: number
+          description: Current odometer reading in km
+        monthlyDistance:
+          type: number
+          description: Average monthly distance in km
+        lastPmDate:
+          type: string
+          format: date
+        lastPmOdometer:
+          type: number
+        status:
+          type: string
+          enum: [active, inactive, maintenance]
+        notes:
+          type: string
+          nullable: true
+      required:
+        - id
+        - busNumber
+        - model
+        - year
+        - currentOdometer
+        - monthlyDistance
+        - lastPmDate
+        - lastPmOdometer
+        - status
+
+    CreateBusRequest:
+      type: object
+      properties:
+        busNumber:
+          type: string
+        model:
+          type: string
+        year:
+          type: integer
+        currentOdometer:
+          type: number
+        monthlyDistance:
+          type: number
+        lastPmDate:
+          type: string
+          format: date
+        lastPmOdometer:
+          type: number
+        status:
+          type: string
+          enum: [active, inactive, maintenance]
+        notes:
+          type: string
+          nullable: true
+      required:
+        - busNumber
+        - model
+        - year
+        - currentOdometer
+        - monthlyDistance
+        - lastPmDate
+        - lastPmOdometer
+        - status
+
+    PmSchedule:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        intervalKm:
+          type: number
+          nullable: true
+          description: Distance-based interval in km
+        intervalDays:
+          type: integer
+          nullable: true
+          description: Time-based interval in days
+        category:
+          type: string
+          enum: [engine, transmission, brakes, tires, electrical, body, hvac, safety]
+        estimatedHours:
+          type: number
+          description: Estimated labor hours
+        parts:
+          type: array
+          items:
+            $ref: "#/components/schemas/PmPartRequirement"
+      required:
+        - id
+        - name
+        - description
+        - category
+        - estimatedHours
+        - parts
+
+    PmPartRequirement:
+      type: object
+      properties:
+        partId:
+          type: integer
+        partName:
+          type: string
+        partNumber:
+          type: string
+        quantity:
+          type: integer
+      required:
+        - partId
+        - partName
+        - partNumber
+        - quantity
+
+    Part:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        partNumber:
+          type: string
+        category:
+          type: string
+        unitCost:
+          type: number
+        unit:
+          type: string
+        supplier:
+          type: string
+          nullable: true
+        stockLevel:
+          type: integer
+      required:
+        - id
+        - name
+        - partNumber
+        - category
+        - unitCost
+        - unit
+        - stockLevel
+
+    ForecastRequest:
+      type: object
+      properties:
+        busIds:
+          type: array
+          items:
+            type: integer
+          description: Bus IDs to forecast. Empty means all buses.
+        forecastMonths:
+          type: integer
+          description: Number of months to forecast ahead
+          default: 6
+      required:
+        - forecastMonths
+
+    ForecastResponse:
+      type: object
+      properties:
+        forecasts:
+          type: array
+          items:
+            $ref: "#/components/schemas/BusForecast"
+        summary:
+          $ref: "#/components/schemas/ForecastSummary"
+      required:
+        - forecasts
+        - summary
+
+    BusForecast:
+      type: object
+      properties:
+        busId:
+          type: integer
+        busNumber:
+          type: string
+        busModel:
+          type: string
+        scheduledActivities:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScheduledActivity"
+      required:
+        - busId
+        - busNumber
+        - busModel
+        - scheduledActivities
+
+    ScheduledActivity:
+      type: object
+      properties:
+        pmScheduleId:
+          type: integer
+        pmName:
+          type: string
+        category:
+          type: string
+        estimatedDueDate:
+          type: string
+          format: date
+        estimatedDueOdometer:
+          type: number
+        dueInDays:
+          type: integer
+        estimatedHours:
+          type: number
+        urgency:
+          type: string
+          enum: [overdue, urgent, upcoming, scheduled]
+        parts:
+          type: array
+          items:
+            $ref: "#/components/schemas/PmPartRequirement"
+      required:
+        - pmScheduleId
+        - pmName
+        - category
+        - estimatedDueDate
+        - estimatedDueOdometer
+        - dueInDays
+        - estimatedHours
+        - urgency
+        - parts
+
+    ForecastSummary:
+      type: object
+      properties:
+        totalActivities:
+          type: integer
+        overdueCount:
+          type: integer
+        urgentCount:
+          type: integer
+        totalEstimatedHours:
+          type: number
+        totalPartsCost:
+          type: number
+        topPartsRequired:
+          type: array
+          items:
+            $ref: "#/components/schemas/PartSummary"
+      required:
+        - totalActivities
+        - overdueCount
+        - urgentCount
+        - totalEstimatedHours
+        - totalPartsCost
+        - topPartsRequired
+
+    PartSummary:
+      type: object
+      properties:
+        partId:
+          type: integer
+        partName:
+          type: string
+        partNumber:
+          type: string
+        totalQuantity:
+          type: integer
+        totalCost:
+          type: number
+        unitCost:
+          type: number
+      required:
+        - partId
+        - partName
+        - partNumber
+        - totalQuantity
+        - totalCost
+        - unitCost
+
+    PartsBundle:
+      type: object
+      properties:
+        bundleName:
+          type: string
+        description:
+          type: string
+        activities:
+          type: array
+          items:
+            type: string
+        scheduledDate:
+          type: string
+          format: date
+        busId:
+          type: integer
+        busNumber:
+          type: string
+        parts:
+          type: array
+          items:
+            $ref: "#/components/schemas/BundlePart"
+        totalCost:
+          type: number
+        estimatedHours:
+          type: number
+        savingsNote:
+          type: string
+          nullable: true
+      required:
+        - bundleName
+        - description
+        - activities
+        - scheduledDate
+        - busId
+        - busNumber
+        - parts
+        - totalCost
+        - estimatedHours
+
+    BundlePart:
+      type: object
+      properties:
+        partId:
+          type: integer
+        partName:
+          type: string
+        partNumber:
+          type: string
+        quantity:
+          type: integer
+        unitCost:
+          type: number
+        totalCost:
+          type: number
+      required:
+        - partId
+        - partName
+        - partNumber
+        - quantity
+        - unitCost
+        - totalCost

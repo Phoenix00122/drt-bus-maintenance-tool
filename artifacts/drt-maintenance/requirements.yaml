@@ -1,0 +1,22 @@
+packages:
+  "framer-motion": "For smooth page transitions and micro-interactions"
+  "recharts": "For beautiful dashboard analytics and data visualization"
+  "date-fns": "For consistent and human-readable date formatting"
+  "react-hook-form": "For robust form state management"
+  "@hookform/resolvers": "For integrating Zod schemas with forms"
+  "zod": "For strict schema validation on frontend forms"
+  "clsx": "For conditional tailwind class merging"
+  "tailwind-merge": "For resolving tailwind utility conflicts safely"
+
+images:
+  - path: "artifacts/drt-maintenance/public/images/logo.png"
+    description: "Modern, minimal bus transit logo icon in bright orange and navy blue on transparent background, flat vector style, professional"
+    aspect_ratio: "1:1"
+  - path: "artifacts/drt-maintenance/public/images/hero-bg.png"
+    description: "Subtle geometric blueprint pattern in very light gray and blue, ideal for a professional engineering dashboard background, low opacity"
+    aspect_ratio: "16:9"
+
+notes:
+  - App relies on the generated Orval hooks from @workspace/api-client-react
+  - wouter is used for routing, avoiding nested anchor tags inside Link components
+  - Zod is used to coerce numeric and date inputs from forms before sending to the API

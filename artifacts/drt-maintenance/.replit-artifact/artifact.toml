@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "DRT Bus Maintenance Forecasting"
+version = "1.0.0"
+id = "artifacts/drt-maintenance"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+localPort = 25001
+name = "web"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/drt-maintenance run dev"
+
+[services.env]
+PORT = "25001"
+BASE_PATH = "/"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/drt-maintenance", "run", "build"]
+publicDir = "artifacts/drt-maintenance/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
