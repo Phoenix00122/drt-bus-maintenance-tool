@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { generateForecast, useGetBuses } from "@workspace/api-client-react";
+import { generateForecast, useGetBuses, useGetLiveFleet } from "@workspace/api-client-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { BusFront, AlertTriangle, Hammer, CircleDollarSign, Loader2, Clock, ChevronRight, Wrench } from "lucide-react";
 import { motion } from "framer-motion";
@@ -9,7 +9,8 @@ import { Link } from "wouter";
 
 export default function Dashboard() {
   const { data: buses, isLoading: busesLoading } = useGetBuses();
-  
+  const { data: liveFleet } = useGetLiveFleet();
+
   const { data: forecast, isLoading: forecastLoading } = useQuery({
     queryKey: ['dashboard-forecast'],
     queryFn: () => generateForecast({ forecastMonths: 3 }),
@@ -27,6 +28,8 @@ export default function Dashboard() {
   }
 
   const activeBusesCount = buses?.filter(b => b.status === 'active').length || 0;
+  const maintenanceBusesCount = buses?.filter(b => b.status === 'maintenance').length || 0;
+  const liveOnRoad = (liveFleet as any)?.totalLive ?? null;
   
   // Flatten all activities into a sortable list for the service queue
   type QueueItem = {
@@ -94,9 +97,9 @@ export default function Dashboard() {
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <StatCard 
-          title="Active Fleet" 
-          value={activeBusesCount.toString()} 
-          subtitle="Out of total buses" 
+          title="Maintained Fleet" 
+          value={activeBusesCount.toString()}
+          subtitle={`${maintenanceBusesCount} in shop · ${liveOnRoad != null ? `${liveOnRoad} live on DRT today` : "live data loading…"}`}
           icon={BusFront} 
           delay={0.1} 
         />
