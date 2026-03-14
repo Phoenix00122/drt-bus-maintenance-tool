@@ -17,14 +17,14 @@ type Activity = ForecastResponse["forecasts"][number]["scheduledActivities"][num
 
 const URGENCY_ROW: Record<string, string> = {
   overdue: "bg-red-50/70 border-l-2 border-red-400",
-  urgent:  "bg-orange-50/70 border-l-2 border-orange-400",
+  urgent:  "bg-amber-50/70 border-l-2 border-amber-400",
   upcoming:"bg-yellow-50/30 border-l-2 border-yellow-400",
   scheduled:"border-l-2 border-transparent",
 };
 
 const URGENCY_BADGE: Record<string, string> = {
   overdue: "bg-red-100 text-red-700",
-  urgent:  "bg-orange-100 text-orange-700",
+  urgent:  "bg-amber-100 text-amber-700",
   upcoming:"bg-yellow-100 text-yellow-700",
   scheduled:"bg-green-100 text-green-700",
 };
@@ -132,7 +132,7 @@ export default function Forecast() {
               {[
                 { label: "Total Tasks", value: forecastData.summary.totalActivities, color: "bg-blue-50 text-blue-700 border-blue-200" },
                 { label: "Overdue", value: forecastData.summary.overdueCount, color: "bg-red-50 text-red-700 border-red-200" },
-                { label: "Urgent (30d)", value: forecastData.summary.urgentCount, color: "bg-orange-50 text-orange-700 border-orange-200" },
+                { label: "Urgent (30d)", value: forecastData.summary.urgentCount, color: "bg-amber-50 text-amber-700 border-amber-200" },
                 { label: "Est. Labor", value: `${forecastData.summary.totalEstimatedHours.toFixed(0)} hrs`, color: "bg-purple-50 text-purple-700 border-purple-200" },
               ].map(s => (
                 <div key={s.label} className={cn("rounded-xl border p-3 flex items-center gap-3", s.color)}>
@@ -212,7 +212,7 @@ export default function Forecast() {
                             {act.urgency}
                           </span>
                         </span>
-                        <span className={cn("text-right text-xs font-mono font-semibold", act.dueInDays < 0 ? "text-red-600" : act.dueInDays <= 30 ? "text-orange-600" : "text-muted-foreground")}>
+                        <span className={cn("text-right text-xs font-mono font-semibold", act.dueInDays < 0 ? "text-red-600" : act.dueInDays <= 30 ? "text-amber-600" : "text-muted-foreground")}>
                           {act.dueInDays < 0 ? `${Math.abs(act.dueInDays)}d ago` : `${act.dueInDays}d`}
                         </span>
                         <span className="text-right text-xs text-muted-foreground">{act.estimatedHours}h</span>

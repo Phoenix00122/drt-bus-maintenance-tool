@@ -74,10 +74,10 @@ export default function Parts() {
                       <td className="px-6 py-4 text-right font-mono font-medium">{formatCurrency(part.unitCost)} <span className="text-xs text-muted-foreground ml-1">/{part.unit}</span></td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {isLowStock && <AlertTriangle className="w-4 h-4 text-orange-500" />}
+                          {isLowStock && <AlertTriangle className="w-4 h-4 text-amber-500" />}
                           <span className={cn(
                             "font-bold px-2 py-1 rounded-md", 
-                            isLowStock ? "bg-orange-100 text-orange-700" : "text-foreground"
+                            isLowStock ? "bg-amber-100 text-amber-700" : "text-foreground"
                           )}>
                             {part.stockLevel}
                           </span>

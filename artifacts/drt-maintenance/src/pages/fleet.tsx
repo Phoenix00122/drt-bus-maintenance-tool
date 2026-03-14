@@ -25,7 +25,7 @@ type BusFormData = z.infer<typeof busSchema>;
 
 const STATUS_STYLE: Record<string, string> = {
   active: "bg-green-100 text-green-700",
-  maintenance: "bg-orange-100 text-orange-700",
+  maintenance: "bg-amber-100 text-amber-700",
   inactive: "bg-gray-100 text-gray-500",
 };
 
@@ -103,7 +103,7 @@ export default function Fleet() {
       <div className="grid grid-cols-3 gap-3">
         {[
           { label: "Active", count: totalActive, color: "text-green-600 bg-green-50 border-green-200", filter: "active" },
-          { label: "In Shop", count: totalMaint, color: "text-orange-600 bg-orange-50 border-orange-200", filter: "maintenance" },
+          { label: "In Shop", count: totalMaint, color: "text-amber-600 bg-amber-50 border-amber-200", filter: "maintenance" },
           { label: "Inactive", count: totalInact, color: "text-gray-500 bg-gray-50 border-gray-200", filter: "inactive" },
         ].map(s => (
           <button

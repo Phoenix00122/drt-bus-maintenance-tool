@@ -45,7 +45,7 @@ export default function Dashboard() {
   const barData = Object.entries(activitiesByMonth).map(([month, count]) => ({ month, count }));
   const pieData = Object.entries(activitiesByCategory).map(([name, value]) => ({ name, value }));
 
-  const COLORS = ['#F97316', '#1E3A8A', '#3B82F6', '#10B981', '#F59E0B', '#6366F1'];
+  const COLORS = ['#2D7A3A', '#4A2410', '#6B9E5A', '#C4A87C', '#7A8B5D', '#8B6B4A'];
 
   return (
     <div className="space-y-8 pb-12">
@@ -165,17 +165,17 @@ function StatCard({ title, value, subtitle, icon: Icon, delay, variant = "defaul
       transition={{ duration: 0.4, delay }}
       className={cn(
         "relative overflow-hidden rounded-2xl p-6 border shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1",
-        isDestructive ? "bg-red-50/50 border-red-100" : isAccent ? "bg-orange-50/50 border-orange-100" : "bg-card border-border"
+        isDestructive ? "bg-red-50/50 border-red-100" : isAccent ? "bg-green-50/50 border-green-100" : "bg-card border-border"
       )}
     >
       <div className="flex justify-between items-start mb-4">
         <div>
-          <p className={cn("text-sm font-semibold mb-1", isDestructive ? "text-red-600" : isAccent ? "text-orange-600" : "text-muted-foreground")}>{title}</p>
+          <p className={cn("text-sm font-semibold mb-1", isDestructive ? "text-red-600" : isAccent ? "text-green-700" : "text-muted-foreground")}>{title}</p>
           <h3 className="text-3xl font-display font-bold text-foreground">{value}</h3>
         </div>
         <div className={cn(
           "p-3 rounded-xl",
-          isDestructive ? "bg-red-100 text-red-600" : isAccent ? "bg-orange-100 text-orange-600" : "bg-primary/5 text-primary"
+          isDestructive ? "bg-red-100 text-red-600" : isAccent ? "bg-green-100 text-green-700" : "bg-primary/5 text-primary"
         )}>
           <Icon className="w-5 h-5" />
         </div>

@@ -137,7 +137,7 @@ export default function LiveFleet() {
             value={data.notInDb}
             sub="Active but missing from maintenance DB"
             icon={XCircle}
-            color="border-orange-200"
+            color="border-amber-200"
           />
         </div>
       )}
@@ -235,7 +235,7 @@ export default function LiveFleet() {
                       transition={{ delay: i * 0.01 }}
                       className={cn(
                         "border-b last:border-0 hover:bg-muted/30 transition-colors",
-                        !v.inOurDatabase && "bg-orange-50/40"
+                        !v.inOurDatabase && "bg-amber-50/40"
                       )}
                     >
                       <td className="px-4 py-3 font-mono font-semibold">
@@ -274,7 +274,7 @@ export default function LiveFleet() {
                             <CheckCircle2 className="w-4 h-4" /> Tracked
                           </span>
                         ) : (
-                          <span className="flex items-center gap-1 text-orange-500 text-xs font-medium">
+                          <span className="flex items-center gap-1 text-amber-500 text-xs font-medium">
                             <XCircle className="w-4 h-4" /> Not in DB
                           </span>
                         )}
