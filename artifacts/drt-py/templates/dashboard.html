@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+<div class="space-y-6">
+  <!-- Header -->
+  <div>
+    <h1 class="text-2xl font-bold text-navy-800" style="color:#1a2744">Fleet Operations Dashboard</h1>
+    <p class="text-slate-500 text-sm mt-0.5">Durham Region Transit — Predictive Maintenance Overview</p>
+  </div>
+
+  <!-- Stat cards -->
+  <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+    <div class="stat-card col-span-1">
+      <div class="text-3xl font-bold text-navy-800" style="color:#1a2744">{{ stats.total_buses }}</div>
+      <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-1">Total Buses</div>
+    </div>
+    <div class="stat-card">
+      <div class="text-3xl font-bold text-green-600">{{ stats.active_buses }}</div>
+      <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-1">Active</div>
+    </div>
+    <div class="stat-card">
+      <div class="text-3xl font-bold text-orange-500">{{ stats.in_shop }}</div>
+      <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-1">In Shop</div>
+    </div>
+    <div class="stat-card">
+      <div class="text-3xl font-bold" style="color:#1a2744">{{ stats.parts_count }}</div>
+      <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-1">Part SKUs</div>
+    </div>
+    <div class="stat-card">
+      <div class="text-3xl font-bold {% if stats.low_stock > 0 %}text-red-600{% else %}text-green-600{% endif %}">{{ stats.low_stock }}</div>
+      <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-1">Low Stock</div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Top buses needing PM -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+        <h2 class="font-bold text-sm text-slate-800">Buses Approaching Next PM</h2>
+        <a href="/forecast" class="text-xs text-orange-500 font-semibold hover:text-orange-600">View Forecast →</a>
+      </div>
+      <div class="divide-y divide-slate-50">
+        {% for item in urgency_list %}
+        <div class="px-5 py-3 flex items-center gap-4">
+          <div class="font-bold font-mono text-sm text-navy-800 w-12" style="color:#1a2744">{{ item.bus }}</div>
+          <div class="flex-1">
+            <div class="text-xs text-slate-500 mb-1">{{ item.km | int | format_num }} km since last PM</div>
+            <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div class="h-full rounded-full transition-all {% if item.pct >= 90 %}bg-red-500{% elif item.pct >= 70 %}bg-orange-400{% else %}bg-green-500{% endif %}"
+                   style="width: {{ item.pct }}%"></div>
+            </div>
+          </div>
+          <div class="text-xs font-bold {% if item.pct >= 90 %}text-red-600{% elif item.pct >= 70 %}text-orange-500{% else %}text-green-600{% endif %}">
+            {{ item.pct }}%
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- In-shop buses -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+        <h2 class="font-bold text-sm text-slate-800">Currently In Shop</h2>
+        <a href="/fleet" class="text-xs text-orange-500 font-semibold hover:text-orange-600">View Fleet →</a>
+      </div>
+      {% if shop_buses %}
+      <div class="divide-y divide-slate-50">
+        {% for b in shop_buses %}
+        <div class="px-5 py-3 flex items-center gap-3">
+          <span class="badge-maint">Shop</span>
+          <span class="font-bold font-mono text-sm" style="color:#1a2744">{{ b.bus_number }}</span>
+          <span class="text-xs text-slate-500">{{ b.model }}</span>
+          <span class="ml-auto text-xs text-slate-400 truncate max-w-40">{{ b.notes or '—' }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="px-5 py-8 text-center text-slate-400 text-sm">All buses are active ✓</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Stack info -->
+  <div class="bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-5">
+    <h2 class="font-bold text-sm text-slate-800 mb-3">Tech Stack — Python Edition</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {% for item in [
+        ("Backend", "FastAPI", "Python async API framework", "#1a2744"),
+        ("Frontend", "HTMX", "HTML-over-the-wire, no JavaScript framework", "#f97316"),
+        ("Templates", "Jinja2", "Server-side HTML rendering", "#1a2744"),
+        ("Database", "SQLite", "Zero-config, file-based relational DB", "#f97316"),
+      ] %}
+      <div class="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
+        <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">{{ item[0] }}</div>
+        <div class="text-base font-bold mt-0.5" style="color:{{ item[3] }}">{{ item[1] }}</div>
+        <div class="text-[11px] text-slate-500 mt-0.5 leading-snug">{{ item[2] }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

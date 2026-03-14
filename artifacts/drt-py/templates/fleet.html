@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Bus Fleet{% endblock %}
+{% block content %}
+
+<div class="space-y-4">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold" style="color:#1a2744">Bus Fleet</h1>
+      <p class="text-sm text-slate-500 mt-0.5">DRT vehicle register — grouped by fleet family</p>
+    </div>
+    <button class="btn-primary"
+      hx-get="/fleet/add-form"
+      hx-target="#modal-container"
+      hx-swap="innerHTML">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      Add Bus
+    </button>
+  </div>
+
+  <!-- Stats pills (loaded dynamically) -->
+  <div id="fleet-stats"
+    hx-get="/fleet/stats"
+    hx-trigger="load"
+    hx-swap="innerHTML">
+    <div class="h-16 bg-white rounded-2xl border border-slate-100 animate-pulse"></div>
+  </div>
+
+  <!-- Search + filter bar -->
+  <div class="flex items-center gap-3 flex-wrap">
+    <div class="relative">
+      <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <input
+        type="search"
+        name="search"
+        placeholder="Search bus # or model..."
+        class="pl-9 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-orange-300 w-56"
+        hx-get="/fleet/table"
+        hx-trigger="input changed delay:300ms, search"
+        hx-target="#fleet-table"
+        hx-swap="innerHTML"
+        hx-include="[name='status-filter']"
+      />
+    </div>
+    <div class="flex gap-2">
+      {% for val, label in [("all","All"), ("active","Active"), ("maintenance","In Shop"), ("inactive","Inactive")] %}
+      <label class="cursor-pointer">
+        <input type="radio" name="status-filter" value="{{ val }}" class="sr-only peer" {% if val == 'all' %}checked{% endif %}
+          hx-get="/fleet/table"
+          hx-trigger="change"
+          hx-target="#fleet-table"
+          hx-swap="innerHTML"
+          hx-include="[name='search']"
+        />
+        <span class="px-3 py-1 text-xs font-semibold rounded-lg border border-slate-200 bg-white peer-checked:bg-navy-800 peer-checked:text-white peer-checked:border-transparent transition-all hover:border-orange-300 cursor-pointer"
+              style="peer-checked:background:#1a2744">
+          {{ label }}
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+    <span class="ml-auto text-xs text-slate-400 htmx-indicator" id="fleet-loading">Loading…</span>
+  </div>
+
+  <!-- Fleet table (HTMX target) -->
+  <div id="fleet-table"
+    hx-get="/fleet/table"
+    hx-trigger="load"
+    hx-swap="innerHTML"
+    class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+    <div class="p-8 text-center text-slate-400 text-sm">Loading fleet…</div>
+  </div>
+</div>
+
+<div id="modal-container"></div>
+
+<script>
+  function refreshFleet() {
+    htmx.trigger('#fleet-table', 'load');
+    htmx.trigger('#fleet-stats', 'load');
+  }
+  document.body.addEventListener('htmx:afterSwap', function(e) {
+    if (e.detail.target.id === 'modal-container' && e.detail.target.innerHTML === '') {
+      refreshFleet();
+    }
+  });
+</script>
+{% endblock %}

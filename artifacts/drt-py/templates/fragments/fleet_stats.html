@@ -1,0 +1,12 @@
+<div class="grid grid-cols-3 gap-3">
+  {% for val, label, cls, filter_val in [
+    (active, "Active",   "text-green-600 bg-green-50 border-green-200",   "active"),
+    (maint,  "In Shop",  "text-orange-600 bg-orange-50 border-orange-200", "maintenance"),
+    (inact,  "Inactive", "text-slate-500 bg-slate-50 border-slate-200",    "inactive"),
+  ] %}
+  <div class="rounded-2xl border {{ cls }} px-5 py-3 flex items-center gap-4">
+    <div class="text-3xl font-bold">{{ val }}</div>
+    <div class="text-xs font-semibold uppercase tracking-wider opacity-70">{{ label }}</div>
+  </div>
+  {% endfor %}
+</div>

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}PM Forecast{% endblock %}
+{% block content %}
+
+<div class="space-y-4">
+  <div class="bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-4 flex flex-col md:flex-row md:items-center gap-4 justify-between">
+    <div>
+      <h1 class="text-2xl font-bold" style="color:#1a2744">PM Forecast</h1>
+      <p class="text-sm text-slate-500 mt-0.5">Upcoming preventative maintenance based on odometer projections</p>
+    </div>
+    <form
+      hx-post="/forecast/generate"
+      hx-target="#forecast-results"
+      hx-swap="innerHTML"
+      hx-indicator="#gen-spinner"
+      class="flex items-center gap-3"
+    >
+      <div class="flex items-center gap-2">
+        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <select name="months" class="px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-orange-300">
+          <option value="1">1 Month</option>
+          <option value="3">3 Months</option>
+          <option value="6" selected>6 Months</option>
+          <option value="12">1 Year</option>
+        </select>
+      </div>
+      <button type="submit" class="btn-primary">
+        <svg id="gen-spinner" class="w-4 h-4 htmx-indicator animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+        Generate
+      </button>
+    </form>
+  </div>
+
+  <div id="forecast-results">
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-12 text-center text-slate-400">
+      <svg class="w-10 h-10 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      <p class="text-sm font-medium">Select a forecast period and click Generate</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

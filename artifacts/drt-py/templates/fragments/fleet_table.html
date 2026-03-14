@@ -1,0 +1,73 @@
+{% if not families %}
+<div class="px-6 py-12 text-center text-slate-400">
+  <svg class="w-10 h-10 mx-auto mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 6v6m7-6v6M2 12h19.6M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+  <p class="text-sm">No buses match your filter.</p>
+</div>
+{% else %}
+<!-- Column headers -->
+<div class="grid text-[11px] font-semibold text-slate-400 uppercase tracking-wider bg-slate-50 border-b border-slate-100 px-3 py-2"
+     style="grid-template-columns: 70px 1fr 110px 100px 100px 80px 90px 60px">
+  <span>Bus #</span>
+  <span>Model / Year</span>
+  <span class="text-right">Odometer</span>
+  <span class="text-right">Mo. km</span>
+  <span class="text-right">Last PM</span>
+  <span class="text-center">Status</span>
+  <span>Notes</span>
+  <span class="text-right">Edit</span>
+</div>
+
+{% for family, buses in families.items() %}
+{% set active_cnt = buses | selectattr("status", "equalto", "active") | list | length %}
+<details open>
+  <summary class="flex items-center gap-2 px-3 py-1.5 bg-slate-50/80 border-b border-slate-100 hover:bg-slate-100 transition-colors">
+    <svg class="w-3.5 h-3.5 text-slate-400 transition-transform details-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-xs font-bold text-slate-700">{{ family }}</span>
+    <span class="ml-auto text-xs text-slate-400">{{ active_cnt }}/{{ buses | length }} active</span>
+  </summary>
+
+  {% for bus in buses %}
+  <div class="grid items-center px-3 py-1.5 border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors group"
+       style="grid-template-columns: 70px 1fr 110px 100px 100px 80px 90px 60px"
+       id="bus-row-{{ bus.id }}">
+    <span class="font-bold font-mono text-sm" style="color:#1a2744">{{ bus.bus_number }}</span>
+    <span class="text-sm text-slate-700 truncate pr-2">
+      {{ bus.model }}
+      <span class="text-slate-400 text-xs">{{ bus.year }}</span>
+    </span>
+    <span class="text-right font-mono text-xs text-slate-500">{{ "{:,}".format(bus.current_odometer) }} km</span>
+    <span class="text-right font-mono text-xs text-slate-400">{{ "{:,}".format(bus.monthly_distance) }}</span>
+    <span class="text-right text-xs text-slate-400">{{ bus.last_pm_date or "—" }}</span>
+    <span class="flex justify-center">
+      {% if bus.status == "active" %}<span class="badge-active">Active</span>
+      {% elif bus.status == "maintenance" %}<span class="badge-maint">Shop</span>
+      {% else %}<span class="badge-inactive">Off</span>
+      {% endif %}
+    </span>
+    <span class="text-xs text-slate-400 truncate">{{ (bus.notes or "")[:20] }}</span>
+    <span class="flex items-center justify-end gap-1">
+      <button class="p-1 text-slate-400 hover:text-navy-800 rounded transition-colors opacity-0 group-hover:opacity-100"
+        hx-get="/fleet/{{ bus.id }}/edit-form"
+        hx-target="#modal-container"
+        hx-swap="innerHTML"
+        title="Edit">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+      </button>
+      <button class="p-1 text-red-400 hover:text-red-600 rounded transition-colors opacity-0 group-hover:opacity-100"
+        hx-delete="/fleet/{{ bus.id }}"
+        hx-target="#fleet-table"
+        hx-swap="innerHTML"
+        hx-confirm="Delete bus {{ bus.bus_number }}?"
+        title="Delete">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+      </button>
+    </span>
+  </div>
+  {% endfor %}
+</details>
+{% endfor %}
+
+<div class="px-3 py-2 text-xs text-slate-400 text-right bg-slate-50/50 border-t border-slate-100">
+  {{ total }} buses shown
+</div>
+{% endif %}

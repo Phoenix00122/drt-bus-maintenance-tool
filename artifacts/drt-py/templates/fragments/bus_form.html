@@ -1,0 +1,81 @@
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div class="px-5 py-3.5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+      <h2 class="text-lg font-bold" style="color:#1a2744">
+        {% if bus %}Edit Bus {{ bus.bus_number }}{% else %}Add New Bus{% endif %}
+      </h2>
+      <button onclick="document.getElementById('modal-container').innerHTML=''" class="p-1.5 hover:bg-slate-200 rounded-lg transition-colors text-slate-500">✕</button>
+    </div>
+
+    <form
+      hx-post="{{ action }}"
+      hx-target="#fleet-table"
+      hx-swap="innerHTML"
+      hx-on::after-request="document.getElementById('modal-container').innerHTML=''"
+      class="p-5 overflow-y-auto space-y-3"
+    >
+      <div class="grid grid-cols-2 gap-3">
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-700">Bus Number *</label>
+          <input name="bus_number" required value="{{ bus.bus_number if bus else '' }}"
+            class="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+            placeholder="e.g. 6100" />
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-700">Year *</label>
+          <input name="year" type="number" required value="{{ bus.year if bus else 2020 }}"
+            class="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300" />
+        </div>
+        <div class="space-y-1 col-span-2">
+          <label class="text-xs font-semibold text-slate-700">Model *</label>
+          <input name="model" required value="{{ bus.model if bus else 'Nova Bus LFS' }}"
+            class="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300" />
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-700">Status</label>
+          <select name="status" class="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white">
+            {% for val, label in [("active","Active"),("maintenance","Maintenance"),("inactive","Inactive")] %}
+            <option value="{{ val }}" {% if bus and bus.status == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-700">Current Odometer (km) *</label>
+          <input name="current_odometer" type="number" required value="{{ bus.current_odometer if bus else 0 }}"
+            class="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300" />
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-700">Avg. Monthly Distance (km) *</label>
+          <input name="monthly_distance" type="number" required value="{{ bus.monthly_distance if bus else 9000 }}"
+            class="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300" />
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-700">Last PM Date *</label>
+          <input name="last_pm_date" type="date" required value="{{ bus.last_pm_date if bus else '' }}"
+            class="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300" />
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-700">Last PM Odometer (km) *</label>
+          <input name="last_pm_odometer" type="number" required value="{{ bus.last_pm_odometer if bus else 0 }}"
+            class="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300" />
+        </div>
+      </div>
+      <div class="space-y-1">
+        <label class="text-xs font-semibold text-slate-700">Notes</label>
+        <textarea name="notes" rows="2"
+          class="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
+          placeholder="Route, notes…">{{ bus.notes if bus else '' }}</textarea>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+        <button type="button" onclick="document.getElementById('modal-container').innerHTML=''"
+          class="px-4 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+          Cancel
+        </button>
+        <button type="submit" class="btn-primary">
+          {% if bus %}Save Changes{% else %}Add Bus{% endif %}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

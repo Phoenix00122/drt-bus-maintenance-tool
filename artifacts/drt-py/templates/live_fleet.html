@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Live Fleet{% endblock %}
+{% block content %}
+
+<div class="space-y-4">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold" style="color:#1a2744">Live Fleet Tracker</h1>
+      <p class="text-sm text-slate-500 mt-0.5">Real-time DRT vehicle positions via GTFS-RT</p>
+    </div>
+    <button class="btn-ghost"
+      hx-get="/live/data"
+      hx-target="#live-table"
+      hx-swap="innerHTML"
+      hx-indicator="#refresh-spin">
+      <svg id="refresh-spin" class="w-4 h-4 htmx-indicator animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      Refresh
+    </button>
+  </div>
+
+  <div id="live-table"
+    hx-get="/live/data"
+    hx-trigger="load, every 30s"
+    hx-swap="innerHTML">
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-12 text-center text-slate-400">
+      <svg class="w-10 h-10 mx-auto mb-3 opacity-30 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      <p class="text-sm">Fetching live vehicle positions…</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

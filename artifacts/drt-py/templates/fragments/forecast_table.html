@@ -1,0 +1,135 @@
+{% if not activities %}
+<div class="bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-10 text-center text-slate-400">
+  <p class="text-sm">No maintenance activities in this period.</p>
+</div>
+{% else %}
+
+<!-- Summary strip -->
+<div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+  {% for val, label, cls in [
+    (summary.total,           "Total Tasks",    "bg-blue-50 border-blue-200 text-blue-700"),
+    (summary.overdue,         "Overdue",         "bg-red-50 border-red-200 text-red-700"),
+    (summary.urgent,          "Urgent (30d)",    "bg-orange-50 border-orange-200 text-orange-700"),
+    (summary.hours ~ " hrs",  "Est. Labor",      "bg-purple-50 border-purple-200 text-purple-700"),
+    ("$" ~ "{:,.0f}".format(summary.cost), "Parts Cost", "bg-green-50 border-green-200 text-green-700"),
+  ] %}
+  <div class="rounded-xl border {{ cls }} px-4 py-3 flex items-center gap-3">
+    <span class="text-2xl font-bold">{{ val }}</span>
+    <span class="text-xs font-semibold uppercase tracking-wide opacity-70">{{ label }}</span>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Filter pills -->
+<div class="flex gap-2 flex-wrap mb-3">
+  {% set urgency_counts = {"overdue": 0, "urgent": 0, "upcoming": 0, "scheduled": 0} %}
+  {% for a in activities %}{% set _ = urgency_counts.update({a.urgency: urgency_counts[a.urgency] + 1}) %}{% endfor %}
+  {% for u, label, cls in [
+    ("all", "All (" ~ activities|length ~ ")", "bg-slate-700 text-white"),
+    ("overdue",   "Overdue ("   ~ urgency_counts.overdue   ~ ")", "bg-red-100 text-red-700"),
+    ("urgent",    "Urgent ("    ~ urgency_counts.urgent    ~ ")", "bg-orange-100 text-orange-700"),
+    ("upcoming",  "Upcoming ("  ~ urgency_counts.upcoming  ~ ")", "bg-yellow-100 text-yellow-700"),
+    ("scheduled", "Scheduled (" ~ urgency_counts.scheduled ~ ")", "bg-green-100 text-green-700"),
+  ] %}
+  <button
+    onclick="filterForecast('{{ u }}')"
+    class="px-3 py-1 text-xs font-semibold rounded-lg {{ cls }} border border-transparent hover:opacity-80 transition-all"
+    id="pill-{{ u }}">
+    {{ label }}
+  </button>
+  {% endfor %}
+</div>
+
+<!-- Flat table -->
+<div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+  <div class="grid text-[11px] font-semibold text-slate-400 uppercase tracking-wider bg-slate-50 border-b border-slate-100 px-3 py-2"
+       style="grid-template-columns: 70px 160px 1fr 105px 90px 65px 55px 28px">
+    <span>Bus #</span>
+    <span>Model</span>
+    <span>Task</span>
+    <span class="text-center">Due Date</span>
+    <span class="text-center">Urgency</span>
+    <span class="text-right">Days</span>
+    <span class="text-right">Hrs</span>
+    <span></span>
+  </div>
+
+  {% for act in activities %}
+  {% set row_id = "act-" ~ loop.index %}
+  <div class="forecast-row border-b border-slate-50 last:border-0
+    {% if act.urgency == 'overdue' %}border-l-2 border-l-red-400 bg-red-50/40
+    {% elif act.urgency == 'urgent' %}border-l-2 border-l-orange-400 bg-orange-50/40
+    {% elif act.urgency == 'upcoming' %}border-l-2 border-l-yellow-400
+    {% else %}border-l-2 border-l-transparent{% endif %}"
+    data-urgency="{{ act.urgency }}">
+
+    <!-- Main row -->
+    <div class="grid items-center px-3 py-2 hover:bg-black/[0.02] transition-colors"
+         style="grid-template-columns: 70px 160px 1fr 105px 90px 65px 55px 28px">
+      <span class="font-bold font-mono text-sm" style="color:#1a2744">{{ act.bus_number }}</span>
+      <span class="text-xs text-slate-400 truncate pr-2">{{ act.bus_model | truncate(22, true, '…') }}</span>
+      <span class="text-sm font-medium text-slate-800 truncate pr-2">{{ act.pm_name }}</span>
+      <span class="text-center text-xs text-slate-500">{{ act.due_date }}</span>
+      <span class="flex justify-center">
+        <span class="badge-{{ act.urgency }}">{{ act.urgency }}</span>
+      </span>
+      <span class="text-right text-xs font-mono font-semibold
+        {% if act.due_in_days < 0 %}text-red-600
+        {% elif act.due_in_days <= 30 %}text-orange-600
+        {% else %}text-slate-500{% endif %}">
+        {% if act.due_in_days < 0 %}{{ (-act.due_in_days) }}d ago{% else %}{{ act.due_in_days }}d{% endif %}
+      </span>
+      <span class="text-right text-xs text-slate-400">{{ act.est_hours }}h</span>
+      {% if act.parts %}
+      <button onclick="toggleParts('{{ row_id }}')"
+        class="flex justify-center text-slate-400 hover:text-slate-700 transition-colors"
+        id="{{ row_id }}-btn" title="Show parts">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      </button>
+      {% else %}<span></span>{% endif %}
+    </div>
+
+    <!-- Parts expand -->
+    {% if act.parts %}
+    <div id="{{ row_id }}-parts" class="hidden px-3 pb-2 pt-1 bg-slate-50/50 border-t border-slate-100/60">
+      <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Required Parts</div>
+      <div class="flex flex-wrap gap-1.5">
+        {% for p in act.parts %}
+        <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded px-2 py-1 text-xs shadow-sm">
+          <span class="font-mono text-slate-400 text-[10px]">{{ p.part_number }}</span>
+          <span class="text-slate-700 font-medium">{{ p.part_name }}</span>
+          <span class="bg-slate-100 px-1 rounded text-slate-500 text-[10px]">×{{ p.quantity }}</span>
+          <span class="text-green-700 font-semibold text-[10px]">${{ "%.2f" | format(p.unit_cost * p.quantity) }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<p class="text-xs text-slate-400 text-right mt-2">
+  {{ activities | length }} activities · click the arrow to see required parts
+</p>
+{% endif %}
+
+<script>
+function toggleParts(id) {
+  const el = document.getElementById(id + '-parts');
+  const btn = document.getElementById(id + '-btn');
+  if (el) {
+    el.classList.toggle('hidden');
+    if (btn) btn.style.transform = el.classList.contains('hidden') ? '' : 'rotate(90deg)';
+  }
+}
+function filterForecast(urgency) {
+  document.querySelectorAll('.forecast-row').forEach(row => {
+    if (urgency === 'all' || row.dataset.urgency === urgency) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+}
+</script>

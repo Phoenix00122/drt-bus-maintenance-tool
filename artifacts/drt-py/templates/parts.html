@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Parts Inventory{% endblock %}
+{% block content %}
+
+<div class="space-y-4">
+  <div>
+    <h1 class="text-2xl font-bold" style="color:#1a2744">Parts Inventory</h1>
+    <p class="text-sm text-slate-500 mt-0.5">{{ parts | length }} SKUs across {{ categories | length }} categories</p>
+  </div>
+
+  <!-- Category summary pills -->
+  <div class="flex flex-wrap gap-2">
+    {% for cat in categories %}
+    {% set cat_parts = parts | selectattr("category", "equalto", cat) | list %}
+    {% set low = cat_parts | selectattr("stock_quantity", "lt", cat_parts[0].min_stock if cat_parts else 0) | list %}
+    <div class="px-3 py-1.5 bg-white border border-slate-100 rounded-xl text-xs font-semibold text-slate-600 shadow-sm">
+      {{ cat }}
+      <span class="ml-1 text-slate-400">{{ cat_parts | length }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Parts table -->
+  <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+    <div class="grid grid-cols-[120px_1fr_120px_80px_80px_80px_90px] text-[11px] font-semibold text-slate-400 uppercase tracking-wider bg-slate-50 border-b border-slate-100 px-4 py-2.5">
+      <span>Part #</span>
+      <span>Name</span>
+      <span>Category</span>
+      <span class="text-right">Unit Cost</span>
+      <span class="text-right">Stock</span>
+      <span class="text-right">Min</span>
+      <span class="text-center">Status</span>
+    </div>
+
+    {% set prev_cat = namespace(val="") %}
+    {% for part in parts %}
+      {% if part.category != prev_cat.val %}
+      <div class="px-4 py-1.5 bg-slate-50/80 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">
+        {{ part.category }}
+      </div>
+      {% set prev_cat.val = part.category %}
+      {% endif %}
+      <div class="grid grid-cols-[120px_1fr_120px_80px_80px_80px_90px] items-center px-4 py-2 border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors text-sm">
+        <span class="font-mono text-xs font-semibold text-slate-600">{{ part.part_number }}</span>
+        <span class="font-medium text-slate-800">{{ part.part_name }}</span>
+        <span class="text-xs text-slate-400">{{ part.category }}</span>
+        <span class="text-right font-mono text-xs text-slate-600">${{ "%.2f" | format(part.unit_cost) }}</span>
+        <span class="text-right font-mono text-sm font-bold {% if part.stock_quantity < part.min_stock %}text-red-600{% else %}text-slate-700{% endif %}">
+          {{ part.stock_quantity }}
+        </span>
+        <span class="text-right font-mono text-xs text-slate-400">{{ part.min_stock }}</span>
+        <span class="flex justify-center">
+          {% if part.stock_quantity == 0 %}
+          <span class="badge-overdue">Out</span>
+          {% elif part.stock_quantity < part.min_stock %}
+          <span class="badge-urgent">Low</span>
+          {% else %}
+          <span class="badge-active">OK</span>
+          {% endif %}
+        </span>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
