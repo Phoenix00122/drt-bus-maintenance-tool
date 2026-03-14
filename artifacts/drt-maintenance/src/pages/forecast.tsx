@@ -1,21 +1,57 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { generateForecast, useGetBuses, ForecastResponse } from "@workspace/api-client-react";
+import { generateForecast, ForecastResponse } from "@workspace/api-client-react";
 import { format } from "date-fns";
-import { CalendarDays, Loader2, Play, Settings2, ShieldAlert, Wrench, AlertCircle, CheckCircle2 } from "lucide-react";
+import {
+  CalendarDays, Loader2, Play, Wrench,
+  ShieldAlert, AlertCircle, Settings2, CheckCircle2,
+  ChevronDown, ChevronRight, Package,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
+type Activity = ForecastResponse["forecasts"][number]["scheduledActivities"][number] & {
+  busNumber: string;
+  busModel: string;
+  busId: number;
+};
+
+const URGENCY_ROW: Record<string, string> = {
+  overdue: "bg-red-50/70 border-l-2 border-red-400",
+  urgent:  "bg-orange-50/70 border-l-2 border-orange-400",
+  upcoming:"bg-yellow-50/30 border-l-2 border-yellow-400",
+  scheduled:"border-l-2 border-transparent",
+};
+
+const URGENCY_BADGE: Record<string, string> = {
+  overdue: "bg-red-100 text-red-700",
+  urgent:  "bg-orange-100 text-orange-700",
+  upcoming:"bg-yellow-100 text-yellow-700",
+  scheduled:"bg-green-100 text-green-700",
+};
+
+const URGENCY_ICON: Record<string, React.ElementType> = {
+  overdue: ShieldAlert,
+  urgent:  AlertCircle,
+  upcoming: CalendarDays,
+  scheduled: CheckCircle2,
+};
+
+const URGENCY_ORDER = ["overdue", "urgent", "upcoming", "scheduled"];
+
 export default function Forecast() {
-  const { data: buses } = useGetBuses();
   const [months, setMonths] = useState(6);
   const [isGenerating, setIsGenerating] = useState(false);
   const [forecastData, setForecastData] = useState<ForecastResponse | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [groupFilter, setGroupFilter] = useState<string>("all");
+  const [busSearch, setBusSearch] = useState("");
 
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
       const data = await generateForecast({ forecastMonths: months });
       setForecastData(data);
+      setExpandedRows(new Set());
     } catch (e) {
       console.error(e);
     } finally {
@@ -23,26 +59,52 @@ export default function Forecast() {
     }
   };
 
+  // Flatten all activities into one list
+  const allActivities: Activity[] = forecastData?.forecasts.flatMap(f =>
+    f.scheduledActivities.map(act => ({
+      ...act,
+      busNumber: f.busNumber,
+      busModel: f.busModel,
+      busId: f.busId,
+    }))
+  ) ?? [];
+
+  const filtered = allActivities.filter(a => {
+    const matchGroup = groupFilter === "all" || a.urgency === groupFilter;
+    const matchBus = !busSearch || a.busNumber.includes(busSearch) || a.busModel.toLowerCase().includes(busSearch.toLowerCase());
+    return matchGroup && matchBus;
+  }).sort((a, b) => a.dueInDays - b.dueInDays);
+
+  const counts = URGENCY_ORDER.reduce<Record<string, number>>((acc, u) => {
+    acc[u] = allActivities.filter(a => a.urgency === u).length;
+    return acc;
+  }, {});
+
+  const toggleRow = (key: string) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-card p-6 rounded-2xl border border-border shadow-sm">
+    <div className="space-y-4">
+      {/* Header + controls */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-4 rounded-2xl border border-border shadow-sm">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-primary">Maintenance Forecast</h1>
-          <p className="text-muted-foreground mt-1 max-w-2xl">
-            Predict upcoming preventative maintenance based on planned monthly service distances and current odometer readings.
+          <h1 className="text-2xl font-bold tracking-tight text-primary">PM Forecast</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            Upcoming preventative maintenance based on odometer projections.
           </p>
         </div>
-        
-        <div className="flex items-end gap-4 w-full md:w-auto">
-          <div className="space-y-1.5 flex-1 md:w-48">
-            <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <CalendarDays className="w-4 h-4 text-accent" />
-              Forecast Period
-            </label>
-            <select 
-              value={months} 
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="w-4 h-4 text-accent shrink-0" />
+            <select
+              value={months}
               onChange={(e) => setMonths(Number(e.target.value))}
-              className="w-full px-4 py-2.5 rounded-xl border-2 border-border bg-background focus:ring-4 focus:ring-accent/20 focus:border-accent outline-none font-medium transition-all"
+              className="px-3 py-1.5 text-sm rounded-lg border border-border bg-background focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none font-medium"
             >
               <option value={1}>1 Month</option>
               <option value={3}>3 Months</option>
@@ -53,155 +115,158 @@ export default function Forecast() {
           <button
             onClick={handleGenerate}
             disabled={isGenerating}
-            className="px-6 py-2.5 bg-accent text-white font-bold rounded-xl shadow-lg shadow-accent/25 hover:shadow-xl hover:bg-accent/90 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2 disabled:opacity-50 h-[46px]"
+            className="px-5 py-1.5 bg-accent text-white font-bold text-sm rounded-lg shadow hover:shadow-md hover:bg-accent/90 hover:-translate-y-0.5 transition-all flex items-center gap-2 disabled:opacity-50"
           >
-            {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-current" />}
+            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-current" />}
             Generate
           </button>
         </div>
       </div>
 
-      <AnimatePresence mode="wait">
+      {/* Summary + filters */}
+      <AnimatePresence>
         {forecastData && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
-          >
-            {/* Summary Strip */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <SummaryBadge label="Total Activities" value={forecastData.summary.totalActivities} color="bg-blue-100 text-blue-700" />
-              <SummaryBadge label="Overdue" value={forecastData.summary.overdueCount} color="bg-red-100 text-red-700" />
-              <SummaryBadge label="Urgent (Next 30D)" value={forecastData.summary.urgentCount} color="bg-orange-100 text-orange-700" />
-              <SummaryBadge label="Est. Labor Hrs" value={forecastData.summary.totalEstimatedHours.toFixed(1)} color="bg-purple-100 text-purple-700" />
-            </div>
-
-            {/* Results Grid */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              {forecastData.forecasts.map((forecast, i) => (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: i * 0.1 }}
-                  key={forecast.busId} 
-                  className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <div className="bg-primary px-6 py-4 flex justify-between items-center text-white">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-white/20 p-2 rounded-lg"><BusIcon className="w-5 h-5" /></div>
-                      <div>
-                        <h3 className="font-display font-bold text-xl">Bus {forecast.busNumber}</h3>
-                        <p className="text-primary-foreground/70 text-sm font-medium">{forecast.busModel}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold">{forecast.scheduledActivities.length}</div>
-                      <div className="text-xs text-primary-foreground/70 uppercase tracking-wide">Tasks</div>
-                    </div>
-                  </div>
-                  
-                  <div className="p-0">
-                    {forecast.scheduledActivities.length === 0 ? (
-                      <div className="p-8 text-center text-muted-foreground flex flex-col items-center">
-                        <CheckCircle2 className="w-10 h-10 mb-2 text-green-500 opacity-50" />
-                        <p>No maintenance scheduled for this period.</p>
-                      </div>
-                    ) : (
-                      <div className="divide-y divide-border">
-                        {forecast.scheduledActivities.map((act, j) => (
-                          <ActivityRow key={j} activity={act} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+            {/* Summary strip */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label: "Total Tasks", value: forecastData.summary.totalActivities, color: "bg-blue-50 text-blue-700 border-blue-200" },
+                { label: "Overdue", value: forecastData.summary.overdueCount, color: "bg-red-50 text-red-700 border-red-200" },
+                { label: "Urgent (30d)", value: forecastData.summary.urgentCount, color: "bg-orange-50 text-orange-700 border-orange-200" },
+                { label: "Est. Labor", value: `${forecastData.summary.totalEstimatedHours.toFixed(0)} hrs`, color: "bg-purple-50 text-purple-700 border-purple-200" },
+              ].map(s => (
+                <div key={s.label} className={cn("rounded-xl border p-3 flex items-center gap-3", s.color)}>
+                  <div className="text-2xl font-bold">{s.value}</div>
+                  <div className="text-xs font-semibold uppercase tracking-wide opacity-75">{s.label}</div>
+                </div>
               ))}
             </div>
+
+            {/* Urgency filter pills + bus search */}
+            <div className="flex flex-wrap gap-2 items-center">
+              <button
+                onClick={() => setGroupFilter("all")}
+                className={cn("px-3 py-1 text-xs font-semibold rounded-lg border transition-all", groupFilter === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:border-primary/40")}
+              >
+                All ({allActivities.length})
+              </button>
+              {URGENCY_ORDER.map(u => (
+                <button
+                  key={u}
+                  onClick={() => setGroupFilter(groupFilter === u ? "all" : u)}
+                  className={cn("px-3 py-1 text-xs font-semibold rounded-lg border transition-all capitalize", groupFilter === u ? URGENCY_BADGE[u] + " border-current/30" : "bg-card border-border hover:border-primary/40")}
+                >
+                  {u} ({counts[u] ?? 0})
+                </button>
+              ))}
+              <div className="ml-auto">
+                <input
+                  type="search"
+                  placeholder="Filter by bus..."
+                  value={busSearch}
+                  onChange={e => setBusSearch(e.target.value)}
+                  className="px-3 py-1 text-xs border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-accent/30 w-36"
+                />
+              </div>
+            </div>
+
+            {/* Flat table */}
+            <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+              {/* Column headers */}
+              <div className="grid grid-cols-[72px_160px_1fr_100px_90px_70px_60px_32px] text-[11px] font-semibold text-muted-foreground uppercase tracking-wider bg-muted/50 border-b border-border px-3 py-2">
+                <span>Bus #</span>
+                <span>Service</span>
+                <span>Task</span>
+                <span className="text-center">Due Date</span>
+                <span className="text-center">Urgency</span>
+                <span className="text-right">Days</span>
+                <span className="text-right">Hrs</span>
+                <span></span>
+              </div>
+
+              {filtered.length === 0 ? (
+                <div className="p-10 text-center text-muted-foreground text-sm">
+                  <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-green-400 opacity-50" />
+                  No activities match this filter.
+                </div>
+              ) : (
+                filtered.map((act, i) => {
+                  const rowKey = `${act.busId}-${act.pmName}-${i}`;
+                  const isExpanded = expandedRows.has(rowKey);
+                  const Icon = URGENCY_ICON[act.urgency] ?? Settings2;
+                  const hasParts = act.parts && act.parts.length > 0;
+
+                  return (
+                    <div key={rowKey} className={cn("border-b border-border/50 last:border-0", URGENCY_ROW[act.urgency])}>
+                      {/* Main row */}
+                      <div className="grid grid-cols-[72px_160px_1fr_100px_90px_70px_60px_32px] items-center px-3 py-2 hover:bg-black/[0.02] transition-colors">
+                        <span className="font-bold font-mono text-primary text-sm">{act.busNumber}</span>
+                        <span className="text-xs text-muted-foreground truncate pr-2" title={act.busModel}>{act.busModel}</span>
+                        <span className="text-sm font-medium text-foreground truncate pr-2">{act.pmName}</span>
+                        <span className="text-center text-xs text-muted-foreground">
+                          {format(new Date(act.estimatedDueDate), "MMM d, yy")}
+                        </span>
+                        <span className="flex justify-center">
+                          <span className={cn("flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase", URGENCY_BADGE[act.urgency])}>
+                            <Icon className="w-3 h-3" />
+                            {act.urgency}
+                          </span>
+                        </span>
+                        <span className={cn("text-right text-xs font-mono font-semibold", act.dueInDays < 0 ? "text-red-600" : act.dueInDays <= 30 ? "text-orange-600" : "text-muted-foreground")}>
+                          {act.dueInDays < 0 ? `${Math.abs(act.dueInDays)}d ago` : `${act.dueInDays}d`}
+                        </span>
+                        <span className="text-right text-xs text-muted-foreground">{act.estimatedHours}h</span>
+                        <button
+                          onClick={() => hasParts && toggleRow(rowKey)}
+                          disabled={!hasParts}
+                          className={cn("flex justify-center items-center transition-colors rounded", hasParts ? "text-muted-foreground hover:text-primary cursor-pointer" : "text-transparent cursor-default")}
+                          title={hasParts ? "Show required parts" : ""}
+                        >
+                          {hasParts && (isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />)}
+                        </button>
+                      </div>
+
+                      {/* Expanded parts */}
+                      <AnimatePresence>
+                        {isExpanded && hasParts && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="px-3 pb-2 pt-1 bg-muted/20 border-t border-border/40">
+                              <div className="flex items-center gap-1.5 mb-2">
+                                <Package className="w-3 h-3 text-muted-foreground" />
+                                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Required Parts</span>
+                              </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {act.parts.map((p: any) => (
+                                  <div key={p.partId} className="flex items-center gap-1.5 bg-white border border-border rounded px-2 py-1 text-xs shadow-sm">
+                                    <span className="font-mono text-primary/60 text-[10px]">{p.partNumber}</span>
+                                    <span className="text-foreground font-medium">{p.partName}</span>
+                                    <span className="bg-muted px-1 rounded text-muted-foreground text-[10px]">×{p.quantity}</span>
+                                    <span className="text-green-700 font-semibold text-[10px]">${(p.unitCost * p.quantity).toFixed(2)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer */}
+            <p className="text-xs text-muted-foreground text-right">
+              Showing {filtered.length} of {allActivities.length} activities · Click the arrow on any row to see required parts
+            </p>
           </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
-}
-
-function SummaryBadge({ label, value, color }: any) {
-  return (
-    <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-center items-center shadow-sm">
-      <div className={cn("text-2xl font-bold font-display mb-1 px-4 py-1 rounded-lg", color)}>{value}</div>
-      <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wider text-center">{label}</div>
-    </div>
-  );
-}
-
-function ActivityRow({ activity }: any) {
-  const getUrgencyStyles = (u: string) => {
-    switch (u) {
-      case 'overdue': return 'bg-red-50 border-l-4 border-red-500';
-      case 'urgent': return 'bg-orange-50 border-l-4 border-orange-500';
-      case 'upcoming': return 'bg-yellow-50 border-l-4 border-yellow-400';
-      default: return 'bg-white border-l-4 border-green-500';
-    }
-  };
-
-  const getUrgencyIcon = (u: string) => {
-    switch (u) {
-      case 'overdue': return <ShieldAlert className="w-4 h-4 text-red-500" />;
-      case 'urgent': return <AlertCircle className="w-4 h-4 text-orange-500" />;
-      case 'upcoming': return <CalendarDays className="w-4 h-4 text-yellow-500" />;
-      default: return <Settings2 className="w-4 h-4 text-green-500" />;
-    }
-  };
-
-  return (
-    <div className={cn("p-5 flex flex-col sm:flex-row gap-4 sm:items-center justify-between", getUrgencyStyles(activity.urgency))}>
-      <div className="flex-1 space-y-2">
-        <div className="flex items-center gap-2">
-          {getUrgencyIcon(activity.urgency)}
-          <h4 className="font-bold text-foreground text-base">{activity.pmName}</h4>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-black/5 text-foreground/70 uppercase tracking-wider ml-2">
-            {activity.category}
-          </span>
-        </div>
-        
-        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground font-medium">
-          <div className="flex items-center gap-1.5"><CalendarDays className="w-4 h-4" /> Due: {format(new Date(activity.estimatedDueDate), 'MMM d, yyyy')}</div>
-          <div className="flex items-center gap-1.5"><Wrench className="w-4 h-4" /> {activity.estimatedHours} hrs labor</div>
-        </div>
-
-        {activity.parts.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-black/5">
-            <p className="text-xs font-semibold text-foreground/60 mb-2 uppercase tracking-wider">Required Parts</p>
-            <div className="flex flex-wrap gap-2">
-              {activity.parts.map((p: any) => (
-                <div key={p.partId} className="text-xs bg-white border border-border px-2.5 py-1 rounded-md shadow-sm flex items-center gap-2">
-                  <span className="font-mono text-primary/60">{p.partNumber}</span>
-                  <span className="font-medium text-foreground">{p.partName}</span>
-                  <span className="bg-muted px-1.5 rounded text-muted-foreground">x{p.quantity}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="sm:text-right shrink-0">
-        <div className={cn(
-          "inline-flex font-bold px-3 py-1 rounded-lg text-sm",
-          activity.urgency === 'overdue' ? 'bg-red-100 text-red-700' :
-          activity.urgency === 'urgent' ? 'bg-orange-100 text-orange-700' :
-          activity.urgency === 'upcoming' ? 'bg-yellow-100 text-yellow-700' :
-          'bg-green-100 text-green-700'
-        )}>
-          {activity.urgency.toUpperCase()}
-        </div>
-        <p className="text-xs text-muted-foreground mt-1.5 font-medium text-right pr-1">
-          {activity.dueInDays < 0 ? `${Math.abs(activity.dueInDays)} days ago` : `in ${activity.dueInDays} days`}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function BusIcon(props: any) {
-  return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinelinejoin="round" {...props}><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>;
 }
