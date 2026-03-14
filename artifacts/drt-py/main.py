@@ -213,33 +213,62 @@ def generate_forecast(request: Request, months: int = Form(6)):
     for r in pm_parts_rows:
         parts_by_pm.setdefault(r["pm_schedule_id"], []).append(dict(r))
 
+    # Index schedules by service level for quick lookup
+    sched_by_level = {s["service_level"]: s for s in schedules}
+
     today = date.today()
-    horizon = today + timedelta(days=months * 30)
+    horizon_days = months * 30
+
+    # Service level hierarchy: at every 10k milestone, only do the highest applicable level.
+    # Pattern repeats every 80k: A(10), B(20), A(30), C(40), A(50), B(60), A(70), D(80)
+    def service_level_at(milestone_number: int) -> str:
+        """Return the highest service level for a given 10k milestone count (1-based)."""
+        if milestone_number % 8 == 0:
+            return "D"
+        if milestone_number % 4 == 0:
+            return "C"
+        if milestone_number % 2 == 0:
+            return "B"
+        return "A"
+
+    BASE_INTERVAL = 10_000  # km — smallest service interval (A service)
 
     activities = []
     for bus in buses:
-        odo = bus["current_odometer"]
-        mo_km = bus["monthly_distance"]
-        last_odo = bus["last_pm_odometer"]
+        odo       = bus["current_odometer"]
+        mo_km     = bus["monthly_distance"] or 1
+        last_odo  = bus["last_pm_odometer"]
         last_date = date.fromisoformat(bus["last_pm_date"]) if bus["last_pm_date"] else today
 
-        for sched in schedules:
-            if sched["interval_km"]:
-                interval = sched["interval_km"]
-                km_since = odo - last_odo
-                km_remaining = interval - (km_since % interval)
-                days_remaining = int(km_remaining / mo_km * 30) if mo_km > 0 else 999
-                due_date = today + timedelta(days=days_remaining)
-                due_in_days = days_remaining
-            else:
-                interval_days = sched["interval_days"]
-                days_since = (today - last_date).days
-                days_remaining = interval_days - (days_since % interval_days)
-                due_date = today + timedelta(days=days_remaining)
-                due_in_days = days_remaining
+        km_since = max(0, odo - last_odo)
 
-            if due_date > horizon:
+        # ── km-based services (A/B/C/D) ─────────────────────────────────────
+        # Find how far we are into the current 10k window
+        km_into_current = km_since % BASE_INTERVAL
+        km_to_first     = BASE_INTERVAL - km_into_current  # km until next 10k milestone
+
+        # How many complete 10k intervals have occurred since last PM?
+        completed_intervals = km_since // BASE_INTERVAL
+
+        milestone_offset = 0
+        while True:
+            km_ahead = km_to_first + milestone_offset * BASE_INTERVAL
+            days_from_now = int(km_ahead / mo_km * 30)
+
+            if days_from_now > horizon_days:
+                break
+
+            # The milestone number counts from the last full PM reset
+            milestone_number = completed_intervals + 1 + milestone_offset
+            level = service_level_at(milestone_number)
+
+            sched = sched_by_level.get(level)
+            if not sched:
+                milestone_offset += 1
                 continue
+
+            due_date    = today + timedelta(days=days_from_now)
+            due_in_days = days_from_now
 
             if due_in_days < 0:
                 urgency = "overdue"
@@ -250,21 +279,56 @@ def generate_forecast(request: Request, months: int = Form(6)):
             else:
                 urgency = "scheduled"
 
-            parts = parts_by_pm.get(sched["id"], [])
+            parts      = parts_by_pm.get(sched["id"], [])
             parts_cost = sum(p["unit_cost"] * p["quantity"] for p in parts)
 
             activities.append({
-                "bus_number": bus["bus_number"],
-                "bus_model": bus["model"],
-                "pm_name": sched["name"],
-                "service_level": sched["service_level"],
-                "due_date": due_date.isoformat(),
-                "due_in_days": due_in_days,
-                "urgency": urgency,
-                "est_hours": sched["estimated_hours"],
-                "parts": parts,
-                "parts_cost": round(parts_cost, 2),
+                "bus_number":   bus["bus_number"],
+                "bus_model":    bus["model"],
+                "pm_name":      sched["name"],
+                "service_level": level,
+                "due_date":     due_date.isoformat(),
+                "due_in_days":  due_in_days,
+                "urgency":      urgency,
+                "est_hours":    sched["estimated_hours"],
+                "parts":        parts,
+                "parts_cost":   round(parts_cost, 2),
             })
+
+            milestone_offset += 1
+
+        # ── Annual CVOR inspection (calendar-based, always separate) ─────────
+        cvor = sched_by_level.get("CVOR")
+        if cvor:
+            days_since_last = (today - last_date).days
+            interval_days   = cvor["interval_days"] or 365
+            days_to_cvor    = interval_days - (days_since_last % interval_days)
+
+            if days_to_cvor <= horizon_days:
+                due_date    = today + timedelta(days=days_to_cvor)
+                due_in_days = days_to_cvor
+
+                if due_in_days < 0:
+                    cvor_urgency = "overdue"
+                elif due_in_days <= 30:
+                    cvor_urgency = "urgent"
+                elif due_in_days <= 90:
+                    cvor_urgency = "upcoming"
+                else:
+                    cvor_urgency = "scheduled"
+
+                activities.append({
+                    "bus_number":    bus["bus_number"],
+                    "bus_model":     bus["model"],
+                    "pm_name":       cvor["name"],
+                    "service_level": "CVOR",
+                    "due_date":      due_date.isoformat(),
+                    "due_in_days":   due_in_days,
+                    "urgency":       cvor_urgency,
+                    "est_hours":     cvor["estimated_hours"],
+                    "parts":         [],
+                    "parts_cost":    0.0,
+                })
 
     activities.sort(key=lambda a: a["due_in_days"])
 
