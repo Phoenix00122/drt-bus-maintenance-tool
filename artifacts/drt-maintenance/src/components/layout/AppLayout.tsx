@@ -58,11 +58,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-72 bg-sidebar border-r border-sidebar-border z-20">
         <div className="p-6 flex items-center gap-3">
-          <div className="p-2 bg-white rounded-xl shadow-inner">
+          <div className="p-2 bg-accent rounded-xl shadow-inner">
             <img 
               src={`${import.meta.env.BASE_URL}images/logo.png`} 
               alt="DRT Logo" 
-              className="w-8 h-8 object-contain"
+              className="w-8 h-8 object-contain brightness-0 invert"
             />
           </div>
           <div className="flex flex-col">
@@ -92,7 +92,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       {/* Mobile Header & Overlay */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-sidebar border-b border-sidebar-border z-30 flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
-          <img src={`${import.meta.env.BASE_URL}images/logo.png`} alt="Logo" className="w-8 h-8 bg-white rounded-md p-1" />
+          <img src={`${import.meta.env.BASE_URL}images/logo.png`} alt="Logo" className="w-8 h-8 bg-accent rounded-md p-1 brightness-0 invert" />
           <h1 className="font-display font-bold text-lg text-white">DRT Maintain</h1>
         </div>
         <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-white p-2">
