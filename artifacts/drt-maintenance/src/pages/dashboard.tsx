@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { generateForecast, useGetBuses } from "@workspace/api-client-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { BusFront, AlertTriangle, Hammer, CircleDollarSign, Loader2 } from "lucide-react";
+import { BusFront, AlertTriangle, Hammer, CircleDollarSign, Loader2, Clock, ChevronRight, Wrench } from "lucide-react";
 import { motion } from "framer-motion";
 import { formatCurrency, cn } from "@/lib/utils";
+import { format, parseISO } from "date-fns";
+import { Link } from "wouter";
 
 export default function Dashboard() {
   const { data: buses, isLoading: busesLoading } = useGetBuses();
@@ -26,18 +28,53 @@ export default function Dashboard() {
 
   const activeBusesCount = buses?.filter(b => b.status === 'active').length || 0;
   
+  // Flatten all activities into a sortable list for the service queue
+  type QueueItem = {
+    busNumber: string;
+    busModel: string;
+    pmName: string;
+    dueInDays: number;
+    estimatedDueDate: string;
+    urgency: string;
+    estimatedHours: number;
+    partsCount: number;
+  };
+
+  const allActivities: QueueItem[] = [];
+  forecast?.forecasts.forEach(f => {
+    f.scheduledActivities.forEach((act: any) => {
+      allActivities.push({
+        busNumber: f.busNumber,
+        busModel: f.busModel,
+        pmName: act.pmName,
+        dueInDays: act.dueInDays,
+        estimatedDueDate: act.estimatedDueDate,
+        urgency: act.urgency,
+        estimatedHours: act.estimatedHours,
+        partsCount: act.parts?.length ?? 0,
+      });
+    });
+  });
+
+  // Sort by urgency priority then days
+  const urgencyOrder: Record<string, number> = { overdue: 0, urgent: 1, scheduled: 2 };
+  allActivities.sort((a, b) => {
+    const ua = urgencyOrder[a.urgency] ?? 3;
+    const ub = urgencyOrder[b.urgency] ?? 3;
+    if (ua !== ub) return ua - ub;
+    return a.dueInDays - b.dueInDays;
+  });
+  const serviceQueue = allActivities.slice(0, 8);
+
   // Aggregate activities by month for the chart
   const activitiesByMonth: Record<string, number> = {};
   const activitiesByCategory: Record<string, number> = {};
 
   forecast?.forecasts.forEach(f => {
-    f.scheduledActivities.forEach(act => {
-      // Month grouping
+    f.scheduledActivities.forEach((act: any) => {
       const date = new Date(act.estimatedDueDate);
       const monthStr = date.toLocaleString('default', { month: 'short', year: 'numeric' });
       activitiesByMonth[monthStr] = (activitiesByMonth[monthStr] || 0) + 1;
-
-      // Category grouping
       activitiesByCategory[act.category] = (activitiesByCategory[act.category] || 0) + 1;
     });
   });
@@ -54,6 +91,7 @@ export default function Dashboard() {
         <p className="text-muted-foreground mt-1">Real-time insights and 90-day maintenance forecast.</p>
       </div>
 
+      {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <StatCard 
           title="Active Fleet" 
@@ -87,6 +125,106 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* ── Service Queue ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.45 }}
+        className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden"
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div className="flex items-center gap-2">
+            <Wrench className="w-4 h-4 text-primary" />
+            <h3 className="text-base font-bold text-foreground">Service Queue — Next Up</h3>
+          </div>
+          <Link href="/forecast" className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline">
+            Full forecast <ChevronRight className="w-3 h-3" />
+          </Link>
+        </div>
+
+        {serviceQueue.length === 0 ? (
+          <div className="px-6 py-10 text-center text-muted-foreground text-sm">
+            No upcoming services in the next 90 days.
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {serviceQueue.map((item, i) => {
+              const isOverdue = item.urgency === 'overdue';
+              const isUrgent = item.urgency === 'urgent';
+              const pmLevel = /cvor/i.test(item.pmName) ? 'CVOR'
+                : /^D /i.test(item.pmName) ? 'D'
+                : /^C /i.test(item.pmName) ? 'C'
+                : /^B /i.test(item.pmName) ? 'B'
+                : /^A /i.test(item.pmName) ? 'A' : '—';
+              const levelColors: Record<string, string> = {
+                A: 'bg-green-100 text-green-700',
+                B: 'bg-blue-100 text-blue-700',
+                C: 'bg-amber-100 text-amber-700',
+                D: 'bg-red-100 text-red-700',
+                CVOR: 'bg-purple-100 text-purple-700',
+                '—': 'bg-muted text-muted-foreground',
+              };
+
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.05 * i }}
+                  className={cn(
+                    "flex items-center gap-4 px-6 py-3.5 hover:bg-muted/30 transition-colors",
+                    isOverdue && "bg-red-50/60 hover:bg-red-50"
+                  )}
+                >
+                  {/* PM level badge */}
+                  <span className={cn(
+                    "inline-flex items-center justify-center w-9 h-9 rounded-xl text-xs font-bold shrink-0",
+                    levelColors[pmLevel]
+                  )}>
+                    {pmLevel}
+                  </span>
+
+                  {/* Bus + service info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-bold text-foreground">Bus {item.busNumber}</span>
+                      <span className="text-xs text-muted-foreground truncate">{item.busModel}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">{item.pmName}</p>
+                  </div>
+
+                  {/* Due date */}
+                  <div className="text-right shrink-0">
+                    <p className="text-xs font-semibold text-foreground">
+                      {format(parseISO(item.estimatedDueDate), 'MMM d')}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">{item.estimatedHours}h est.</p>
+                  </div>
+
+                  {/* Urgency pill */}
+                  <div className="shrink-0 w-24 text-right">
+                    {isOverdue ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-100 text-red-700">
+                        <AlertTriangle className="w-3 h-3" /> Overdue
+                      </span>
+                    ) : isUrgent ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-700">
+                        <Clock className="w-3 h-3" /> {item.dueInDays}d
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-muted text-muted-foreground">
+                        <Clock className="w-3 h-3" /> {item.dueInDays}d
+                      </span>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
+      </motion.div>
+
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
