@@ -8,7 +8,8 @@ import {
   Wrench,
   Menu,
   X,
-  Radio
+  Radio,
+  ClipboardList
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { href: "/bundles", label: "Parts Bundling", icon: Wrench },
   { href: "/parts", label: "Parts Inventory", icon: PackageSearch },
   { href: "/live-fleet", label: "Live Fleet", icon: Radio },
+  { href: "/service-logs", label: "Service Logs", icon: ClipboardList },
 ];
 
 export function AppLayout({ children }: { children: ReactNode }) {
