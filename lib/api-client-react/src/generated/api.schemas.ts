@@ -180,6 +180,30 @@ export interface PartsBundle {
   savingsNote?: string | null;
 }
 
+export interface LiveVehicle {
+  vehicleId: string;
+  /** Bus number as displayed (e.g. "6100") */
+  vehicleLabel: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  routeId?: string | null;
+  tripId?: string | null;
+  currentStatus?: string | null;
+  timestamp?: number | null;
+  /** Whether this vehicle exists in our maintenance database */
+  inOurDatabase: boolean;
+  /** Our database bus ID if found */
+  dbBusId?: number | null;
+}
+
+export interface LiveFleetResponse {
+  vehicles: LiveVehicle[];
+  totalLive: number;
+  matchedInDb: number;
+  notInDb: number;
+  fetchedAt: string;
+}
+
 export type GetPartsBundlesParams = {
   busId?: number;
   months?: number;

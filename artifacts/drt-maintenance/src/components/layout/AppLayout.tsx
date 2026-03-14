@@ -7,7 +7,8 @@ import {
   PackageSearch, 
   Wrench,
   Menu,
-  X
+  X,
+  Radio
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { href: "/forecast", label: "PM Forecast", icon: CalendarDays },
   { href: "/bundles", label: "Parts Bundling", icon: Wrench },
   { href: "/parts", label: "Parts Inventory", icon: PackageSearch },
+  { href: "/live-fleet", label: "Live Fleet", icon: Radio },
 ];
 
 export function AppLayout({ children }: { children: ReactNode }) {
@@ -34,10 +36,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <Link 
             key={item.href} 
             href={item.href}
+            aria-current={isActive ? "page" : undefined}
             className={cn(
               "flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200",
               isActive 
-                ? "bg-accent text-accent-foreground shadow-lg shadow-accent/20" 
+                ? "bg-accent text-accent-foreground shadow-lg shadow-accent/20 active" 
                 : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:-translate-y-0.5"
             )}
             onClick={() => setIsMobileMenuOpen(false)}

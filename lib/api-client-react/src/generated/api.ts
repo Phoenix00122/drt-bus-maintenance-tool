@@ -23,6 +23,7 @@ import type {
   ForecastResponse,
   GetPartsBundlesParams,
   HealthStatus,
+  LiveFleetResponse,
   Part,
   PartsBundle,
   PmSchedule,
@@ -653,6 +654,82 @@ export function useGetParts<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetPartsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Fetches real-time vehicle positions from the DRT GTFS-RT feed and compares with our fleet database
+ * @summary Get live DRT vehicle positions
+ */
+export const getGetLiveFleetUrl = () => {
+  return `/api/live-fleet`;
+};
+
+export const getLiveFleet = async (
+  options?: RequestInit,
+): Promise<LiveFleetResponse> => {
+  return customFetch<LiveFleetResponse>(getGetLiveFleetUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetLiveFleetQueryKey = () => {
+  return [`/api/live-fleet`] as const;
+};
+
+export const getGetLiveFleetQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLiveFleet>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getLiveFleet>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetLiveFleetQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getLiveFleet>>> = ({
+    signal,
+  }) => getLiveFleet({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLiveFleet>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetLiveFleetQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getLiveFleet>>
+>;
+export type GetLiveFleetQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get live DRT vehicle positions
+ */
+
+export function useGetLiveFleet<
+  TData = Awaited<ReturnType<typeof getLiveFleet>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getLiveFleet>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetLiveFleetQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

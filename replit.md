@@ -91,6 +91,23 @@ Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used b
 
 Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
 
+## DRT Maintenance App Features
+
+Built as a hackathon project (Durham College 2026, Challenge #14):
+
+- **Dashboard** — fleet summary, active buses count, PM schedule activity, projected parts costs
+- **Bus Fleet** (`/fleet`) — list and manage all buses in the maintenance database
+- **PM Forecast** (`/forecast`) — 90-day rolling forecast of upcoming PM activities
+- **Parts Bundling** (`/bundles`) — suggested bundling of parts for upcoming maintenance activities
+- **Parts Inventory** (`/parts`) — view and manage parts catalog
+- **Live Fleet Tracker** (`/live-fleet`) — real-time DRT vehicle positions from GTFS-RT feed, compared against the maintenance database
+
+### GTFS-RT Integration
+- Feed URL: `https://drtonline.durhamregiontransit.com/gtfsrealtime/VehiclePositions`
+- No authentication required; protobuf binary parsed with `gtfs-realtime-bindings` (CommonJS, loaded via `createRequire`)
+- Backend route: `artifacts/api-server/src/routes/live-fleet.ts`
+- Auto-refreshes every 30 seconds on the frontend
+
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.

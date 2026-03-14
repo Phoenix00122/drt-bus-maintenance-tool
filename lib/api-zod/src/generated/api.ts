@@ -196,6 +196,35 @@ export const GetPartsResponseItem = zod.object({
 export const GetPartsResponse = zod.array(GetPartsResponseItem);
 
 /**
+ * Fetches real-time vehicle positions from the DRT GTFS-RT feed and compares with our fleet database
+ * @summary Get live DRT vehicle positions
+ */
+export const GetLiveFleetResponse = zod.object({
+  vehicles: zod.array(
+    zod.object({
+      vehicleId: zod.string(),
+      vehicleLabel: zod
+        .string()
+        .describe('Bus number as displayed (e.g. \"6100\")'),
+      latitude: zod.number().nullish(),
+      longitude: zod.number().nullish(),
+      routeId: zod.string().nullish(),
+      tripId: zod.string().nullish(),
+      currentStatus: zod.string().nullish(),
+      timestamp: zod.number().nullish(),
+      inOurDatabase: zod
+        .boolean()
+        .describe("Whether this vehicle exists in our maintenance database"),
+      dbBusId: zod.number().nullish().describe("Our database bus ID if found"),
+    }),
+  ),
+  totalLive: zod.number(),
+  matchedInDb: zod.number(),
+  notInDb: zod.number(),
+  fetchedAt: zod.string(),
+});
+
+/**
  * @summary Get suggested parts bundles
  */
 export const getPartsBundlesQueryMonthsDefault = 3;

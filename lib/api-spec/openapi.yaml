@@ -149,6 +149,20 @@ paths:
                 items:
                   $ref: "#/components/schemas/Part"
 
+  /live-fleet:
+    get:
+      operationId: getLiveFleet
+      tags: [buses]
+      summary: Get live DRT vehicle positions
+      description: Fetches real-time vehicle positions from the DRT GTFS-RT feed and compares with our fleet database
+      responses:
+        "200":
+          description: Live fleet data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveFleetResponse"
+
   /parts-bundles:
     get:
       operationId: getPartsBundles
@@ -510,6 +524,66 @@ components:
         - parts
         - totalCost
         - estimatedHours
+
+    LiveVehicle:
+      type: object
+      properties:
+        vehicleId:
+          type: string
+        vehicleLabel:
+          type: string
+          description: Bus number as displayed (e.g. "6100")
+        latitude:
+          type: number
+          nullable: true
+        longitude:
+          type: number
+          nullable: true
+        routeId:
+          type: string
+          nullable: true
+        tripId:
+          type: string
+          nullable: true
+        currentStatus:
+          type: string
+          nullable: true
+        timestamp:
+          type: integer
+          nullable: true
+        inOurDatabase:
+          type: boolean
+          description: Whether this vehicle exists in our maintenance database
+        dbBusId:
+          type: integer
+          nullable: true
+          description: Our database bus ID if found
+      required:
+        - vehicleId
+        - vehicleLabel
+        - inOurDatabase
+
+    LiveFleetResponse:
+      type: object
+      properties:
+        vehicles:
+          type: array
+          items:
+            $ref: "#/components/schemas/LiveVehicle"
+        totalLive:
+          type: integer
+        matchedInDb:
+          type: integer
+        notInDb:
+          type: integer
+        fetchedAt:
+          type: string
+      required:
+        - vehicles
+        - totalLive
+        - matchedInDb
+        - notInDb
+        - fetchedAt
 
     BundlePart:
       type: object

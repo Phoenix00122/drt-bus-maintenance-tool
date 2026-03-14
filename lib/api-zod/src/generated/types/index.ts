@@ -17,6 +17,8 @@ export * from "./forecastResponse";
 export * from "./forecastSummary";
 export * from "./getPartsBundlesParams";
 export * from "./healthStatus";
+export * from "./liveFleetResponse";
+export * from "./liveVehicle";
 export * from "./part";
 export * from "./partsBundle";
 export * from "./partSummary";

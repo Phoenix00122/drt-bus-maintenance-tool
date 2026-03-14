@@ -11,6 +11,7 @@ import Fleet from "@/pages/fleet";
 import Forecast from "@/pages/forecast";
 import Bundles from "@/pages/bundles";
 import Parts from "@/pages/parts";
+import LiveFleet from "@/pages/live-fleet";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,6 +31,7 @@ function Router() {
         <Route path="/forecast" component={Forecast} />
         <Route path="/bundles" component={Bundles} />
         <Route path="/parts" component={Parts} />
+        <Route path="/live-fleet" component={LiveFleet} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>
