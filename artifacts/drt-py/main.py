@@ -205,7 +205,7 @@ def generate_forecast(request: Request, months: int = Form(6)):
         buses = conn.execute("SELECT * FROM buses WHERE status='active'").fetchall()
         schedules = conn.execute("SELECT * FROM pm_schedules").fetchall()
         pm_parts_rows = conn.execute("""
-            SELECT pp.pm_schedule_id, pp.quantity, p.part_number, p.part_name, p.unit_cost
+            SELECT pp.pm_schedule_id, pp.quantity, p.part_number, p.part_name, p.unit_cost, p.unit
             FROM pm_parts pp JOIN parts p ON pp.part_id = p.id
         """).fetchall()
 

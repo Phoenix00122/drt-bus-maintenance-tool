@@ -13,4 +13,5 @@ export interface BundlePart {
   quantity: number;
   unitCost: number;
   totalCost: number;
+  unit: string;
 }

@@ -37,6 +37,7 @@ router.post("/forecast", async (req, res) => {
       partName: partsTable.name,
       partNumber: partsTable.partNumber,
       unitCost: partsTable.unitCost,
+      unit: partsTable.unit,
       quantity: pmSchedulePartsTable.quantity,
     })
     .from(pmSchedulePartsTable)
@@ -59,6 +60,7 @@ router.post("/forecast", async (req, res) => {
           partName: p.partName ?? "",
           partNumber: p.partNumber ?? "",
           quantity: p.quantity,
+          unit: p.unit ?? "ea",
         }));
 
       const intervalKm = pm.intervalKm ? Number(pm.intervalKm) : null;

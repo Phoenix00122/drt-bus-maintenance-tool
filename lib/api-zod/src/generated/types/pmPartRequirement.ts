@@ -11,4 +11,5 @@ export interface PmPartRequirement {
   partName: string;
   partNumber: string;
   quantity: number;
+  unit: string;
 }

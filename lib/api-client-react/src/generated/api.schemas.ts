@@ -72,6 +72,7 @@ export interface PmPartRequirement {
   partName: string;
   partNumber: string;
   quantity: number;
+  unit: string;
 }
 
 export interface PmSchedule {
@@ -165,6 +166,7 @@ export interface BundlePart {
   quantity: number;
   unitCost: number;
   totalCost: number;
+  unit: string;
 }
 
 export interface PartsBundle {

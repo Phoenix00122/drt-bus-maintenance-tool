@@ -124,6 +124,7 @@ export const GenerateForecastResponse = zod.object({
               partName: zod.string(),
               partNumber: zod.string(),
               quantity: zod.number(),
+              unit: zod.string(),
             }),
           ),
         }),
@@ -175,6 +176,7 @@ export const GetPmSchedulesResponseItem = zod.object({
       partName: zod.string(),
       partNumber: zod.string(),
       quantity: zod.number(),
+      unit: zod.string(),
     }),
   ),
 });
@@ -249,6 +251,7 @@ export const GetPartsBundlesResponseItem = zod.object({
       quantity: zod.number(),
       unitCost: zod.number(),
       totalCost: zod.number(),
+      unit: zod.string(),
     }),
   ),
   totalCost: zod.number(),

@@ -245,7 +245,11 @@ export default function Forecast() {
                                   <div key={p.partId} className="flex items-center gap-1.5 bg-white border border-border rounded px-2 py-1 text-xs shadow-sm">
                                     <span className="font-mono text-primary/60 text-[10px]">{p.partNumber}</span>
                                     <span className="text-foreground font-medium">{p.partName}</span>
-                                    <span className="bg-muted px-1 rounded text-muted-foreground text-[10px]">×{p.quantity}</span>
+                                    {(p.unit === "L" || p.unit === "litre") ? (
+                                      <span className="bg-blue-50 px-1.5 rounded text-blue-600 text-[10px] font-semibold">{p.quantity} L</span>
+                                    ) : (
+                                      <span className="bg-muted px-1 rounded text-muted-foreground text-[10px]">×{p.quantity}</span>
+                                    )}
                                     <span className="text-green-700 font-semibold text-[10px]">${(p.unitCost * p.quantity).toFixed(2)}</span>
                                   </div>
                                 ))}
