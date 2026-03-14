@@ -3,8 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClipboardList, Plus, ChevronRight, Package } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
-const api = (path: string) => `${BASE}${path}`;
+const api = (path: string) => path;
 
 interface PmPart {
   partNumber: string;
