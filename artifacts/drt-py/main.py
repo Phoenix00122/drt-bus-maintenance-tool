@@ -421,3 +421,124 @@ async def live_data(request: Request):
         "total": len(vehicles),
         "matched": sum(1 for v in vehicles if v["in_db"]),
     })
+
+
+# ───────────────────────────────────────────────────────────
+# Service Logs
+# ───────────────────────────────────────────────────────────
+def _load_logs_with_parts(conn):
+    logs = conn.execute("""
+        SELECT sl.*, b.model, pm.name AS pm_name, pm.service_level
+        FROM service_logs sl
+        LEFT JOIN buses b ON b.bus_number = sl.bus_number
+        LEFT JOIN pm_schedules pm ON pm.id = sl.pm_schedule_id
+        ORDER BY sl.service_date DESC, sl.created_at DESC
+        LIMIT 100
+    """).fetchall()
+    log_parts = {}
+    for log in logs:
+        parts = conn.execute(
+            "SELECT * FROM service_log_parts WHERE log_id=?", (log["id"],)
+        ).fetchall()
+        log_parts[log["id"]] = [dict(p) for p in parts]
+    return [dict(l) for l in logs], log_parts
+
+
+@app.get("/logs", response_class=HTMLResponse)
+def logs_page(request: Request):
+    with get_db() as conn:
+        buses = conn.execute(
+            "SELECT bus_number, model FROM buses WHERE status='active' ORDER BY bus_number"
+        ).fetchall()
+        schedules = conn.execute(
+            "SELECT id, name, service_level FROM pm_schedules ORDER BY service_level"
+        ).fetchall()
+        logs, log_parts = _load_logs_with_parts(conn)
+    return templates.TemplateResponse("logs.html", {
+        "request": request,
+        "active_page": "logs",
+        "buses": [dict(b) for b in buses],
+        "schedules": [dict(s) for s in schedules],
+        "logs": logs,
+        "log_parts": log_parts,
+        "today": date.today().isoformat(),
+    })
+
+
+@app.get("/logs/parts-checklist", response_class=HTMLResponse)
+def parts_checklist(request: Request, pm_schedule_id: int = 0):
+    parts = []
+    if pm_schedule_id:
+        with get_db() as conn:
+            parts = conn.execute("""
+                SELECT p.part_number, p.part_name, p.unit_cost, p.unit, pp.quantity AS default_qty
+                FROM pm_parts pp
+                JOIN parts p ON pp.part_id = p.id
+                WHERE pp.pm_schedule_id = ?
+                ORDER BY p.category, p.part_name
+            """, (pm_schedule_id,)).fetchall()
+    return templates.TemplateResponse("fragments/parts_checklist.html", {
+        "request": request,
+        "parts": [dict(p) for p in parts],
+    })
+
+
+@app.post("/logs/submit", response_class=HTMLResponse)
+async def submit_log(request: Request):
+    form = await request.form()
+    bus_number       = form.get("bus_number", "")
+    pm_schedule_id   = int(form.get("pm_schedule_id") or 0) or None
+    service_date     = form.get("service_date", date.today().isoformat())
+    mechanic_name    = form.get("mechanic_name", "")
+    odometer         = int(form.get("odometer_at_service") or 0) or None
+    notes            = form.get("notes", "")
+
+    parts_used = []
+    total_cost = 0.0
+    for key, value in form.multi_items():
+        if key.startswith("qty_"):
+            part_number = key[4:]
+            try:
+                qty = float(value)
+            except (ValueError, TypeError):
+                qty = 0
+            if qty > 0:
+                unit_cost  = float(form.get(f"cost_{part_number}") or 0)
+                unit       = form.get(f"unit_{part_number}", "ea")
+                part_name  = form.get(f"name_{part_number}", part_number)
+                line_cost  = round(qty * unit_cost, 2)
+                total_cost += line_cost
+                parts_used.append((part_number, part_name, qty, unit_cost, unit, line_cost))
+
+    total_cost = round(total_cost, 2)
+
+    with get_db() as conn:
+        cur = conn.execute(
+            """INSERT INTO service_logs
+               (bus_number, pm_schedule_id, service_date, mechanic_name,
+                odometer_at_service, notes, total_cost)
+               VALUES (?,?,?,?,?,?,?)""",
+            (bus_number, pm_schedule_id, service_date, mechanic_name,
+             odometer, notes, total_cost),
+        )
+        log_id = cur.lastrowid
+        if parts_used:
+            conn.executemany(
+                """INSERT INTO service_log_parts
+                   (log_id, part_number, part_name, quantity_used, unit_cost, unit, line_cost)
+                   VALUES (?,?,?,?,?,?,?)""",
+                [(log_id, *p) for p in parts_used],
+            )
+        if odometer and bus_number:
+            conn.execute(
+                "UPDATE buses SET last_pm_date=?, last_pm_odometer=? WHERE bus_number=?",
+                (service_date, odometer, bus_number),
+            )
+        logs, log_parts = _load_logs_with_parts(conn)
+
+    return templates.TemplateResponse("fragments/log_history.html", {
+        "request": request,
+        "logs": logs,
+        "log_parts": log_parts,
+        "success_msg": f"Service log saved — Bus {bus_number} · ${total_cost:,.2f}",
+    })

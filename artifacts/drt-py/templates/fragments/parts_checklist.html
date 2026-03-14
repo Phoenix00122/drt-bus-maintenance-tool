@@ -1,0 +1,66 @@
+{% if parts %}
+<div class="space-y-1.5">
+  {% for p in parts %}
+  <div class="part-row flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2"
+       data-unit-cost="{{ p.unit_cost }}">
+    <!-- Checkbox -->
+    <input type="checkbox" name="check_{{ p.part_number }}" checked
+           class="w-4 h-4 accent-orange-500 shrink-0 cursor-pointer" />
+
+    <!-- Hidden meta fields always submitted -->
+    <input type="hidden" name="cost_{{ p.part_number }}" value="{{ p.unit_cost }}" />
+    <input type="hidden" name="unit_{{ p.part_number }}" value="{{ p.unit }}" />
+    <input type="hidden" name="name_{{ p.part_number }}" value="{{ p.part_name }}" />
+
+    <!-- Part info + qty (dimmed when unchecked via CSS) -->
+    <div class="part-fields flex-1 flex items-center gap-2 min-w-0">
+      <div class="flex-1 min-w-0">
+        <div class="text-xs font-medium text-slate-800 truncate">{{ p.part_name }}</div>
+        <div class="flex items-center gap-1.5 mt-0.5">
+          <span class="font-mono text-[10px] text-slate-400">{{ p.part_number }}</span>
+          <span class="text-[10px] text-slate-400">·</span>
+          <span class="text-[10px] text-slate-500">${{ "%.2f"|format(p.unit_cost) }}/{{ p.unit }}</span>
+        </div>
+      </div>
+
+      <!-- Qty input -->
+      <div class="flex items-center gap-1 shrink-0">
+        <input type="number"
+               name="qty_{{ p.part_number }}"
+               value="{{ p.default_qty }}"
+               min="0"
+               step="{{ '0.1' if p.unit == 'L' else '1' }}"
+               class="qty-input w-16 border border-slate-200 rounded px-2 py-0.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-orange-400" />
+        <span class="text-[10px] text-slate-400 w-5">{{ p.unit }}</span>
+      </div>
+
+      <!-- Line cost -->
+      <span class="text-xs font-semibold text-green-700 w-16 text-right shrink-0 line-cost">
+        ${{ "%.2f"|format(p.unit_cost * p.default_qty) }}
+      </span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+(function() {
+  var checklist = document.getElementById('parts-checklist');
+  checklist.querySelectorAll('.part-row').forEach(function(row) {
+    var cb  = row.querySelector('input[type="checkbox"]');
+    var qty = row.querySelector('.qty-input');
+    var lc  = row.querySelector('.line-cost');
+    var cost = parseFloat(row.dataset.unitCost || 0);
+
+    function updateLine() {
+      var q = parseFloat(qty.value) || 0;
+      lc.textContent = '$' + (q * cost).toFixed(2);
+    }
+    qty.addEventListener('input', function() { updateLine(); recalcTotal(); });
+    cb.addEventListener('change', function() { recalcTotal(); });
+  });
+})();
+</script>
+{% else %}
+<p class="text-xs text-slate-400 italic px-1">No standard parts for this PM level — add items manually via notes.</p>
+{% endif %}

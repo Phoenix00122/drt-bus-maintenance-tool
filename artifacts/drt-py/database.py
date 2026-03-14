@@ -66,6 +66,29 @@ def init_db():
                 quantity INTEGER NOT NULL DEFAULT 1,
                 applies_to_model TEXT
             );
+
+            CREATE TABLE IF NOT EXISTS service_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                bus_number TEXT NOT NULL,
+                pm_schedule_id INTEGER REFERENCES pm_schedules(id),
+                service_date TEXT NOT NULL,
+                mechanic_name TEXT NOT NULL,
+                odometer_at_service INTEGER,
+                notes TEXT,
+                total_cost REAL NOT NULL DEFAULT 0,
+                created_at TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS service_log_parts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                log_id INTEGER NOT NULL REFERENCES service_logs(id),
+                part_number TEXT NOT NULL,
+                part_name TEXT NOT NULL,
+                quantity_used REAL NOT NULL DEFAULT 1,
+                unit_cost REAL NOT NULL DEFAULT 0,
+                unit TEXT NOT NULL DEFAULT 'ea',
+                line_cost REAL NOT NULL DEFAULT 0
+            );
         """)
 
 

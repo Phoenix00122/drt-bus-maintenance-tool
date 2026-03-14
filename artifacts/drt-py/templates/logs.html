@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Service Logs{% endblock %}
+
+{% block head %}
+<style>
+  .part-row input[type="checkbox"]:not(:checked) ~ .part-fields { opacity: 0.35; pointer-events: none; }
+  .field-label { @apply block text-xs font-semibold text-slate-600 mb-1; }
+  .field-input { @apply w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent bg-white; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-800">Service Logs</h1>
+    <p class="text-sm text-slate-500 mt-0.5">Record completed PM services and track parts used</p>
+  </div>
+  <span class="text-sm text-slate-400">{{ logs|length }} log{{ 's' if logs|length != 1 else '' }} on record</span>
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-5 gap-6">
+
+  <!-- ── Form ──────────────────────────────────────── -->
+  <div class="xl:col-span-2">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+        <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        <h2 class="font-semibold text-slate-800 text-sm">New Service Entry</h2>
+      </div>
+
+      <form id="log-form"
+            hx-post="/logs/submit"
+            hx-target="#log-history"
+            hx-swap="innerHTML"
+            hx-on::after-request="if(event.detail.successful){ this.reset(); document.getElementById('parts-checklist').innerHTML = '<p class=\'text-xs text-slate-400 italic px-1\'>Select a PM level to load parts</p>'; recalcTotal(); }"
+            class="p-5 space-y-4">
+
+        <!-- Bus -->
+        <div>
+          <label class="field-label">Bus <span class="text-red-500">*</span></label>
+          <select name="bus_number" required class="field-input">
+            <option value="">— select bus —</option>
+            {% for b in buses %}
+            <option value="{{ b.bus_number }}">{{ b.bus_number }} — {{ b.model }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- PM Level -->
+        <div>
+          <label class="field-label">PM Level <span class="text-red-500">*</span></label>
+          <select name="pm_schedule_id" required
+                  hx-get="/logs/parts-checklist"
+                  hx-target="#parts-checklist"
+                  hx-swap="innerHTML"
+                  hx-trigger="change"
+                  hx-include="[name='pm_schedule_id']"
+                  class="field-input">
+            <option value="">— select level —</option>
+            {% for s in schedules %}
+            <option value="{{ s.id }}">{{ s.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Date + Mechanic -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="field-label">Service Date <span class="text-red-500">*</span></label>
+            <input type="date" name="service_date" value="{{ today }}" required class="field-input" />
+          </div>
+          <div>
+            <label class="field-label">Odometer (km)</label>
+            <input type="number" name="odometer_at_service" placeholder="e.g. 215000" min="0" class="field-input" />
+          </div>
+        </div>
+
+        <div>
+          <label class="field-label">Mechanic Name <span class="text-red-500">*</span></label>
+          <input type="text" name="mechanic_name" placeholder="Full name" required class="field-input" />
+        </div>
+
+        <!-- Parts checklist -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="field-label mb-0">Parts Used</label>
+            <span id="total-display" class="text-sm font-bold text-orange-600">$0.00</span>
+          </div>
+          <div id="parts-checklist"
+               class="border border-slate-200 rounded-xl bg-slate-50 min-h-[60px] p-3 space-y-1.5">
+            <p class="text-xs text-slate-400 italic">Select a PM level to load parts</p>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div>
+          <label class="field-label">Notes</label>
+          <textarea name="notes" rows="2" placeholder="Any observations, issues, or deviations…"
+                    class="field-input resize-none"></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary w-full justify-center py-2.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          Save Service Log
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── History ────────────────────────────────────── -->
+  <div class="xl:col-span-3">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+        <svg class="w-4 h-4 text-navy-800" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:#1a2744"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        <h2 class="font-semibold text-slate-800 text-sm">Service History</h2>
+      </div>
+      <div id="log-history" class="divide-y divide-slate-100">
+        {% include "fragments/log_history.html" %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function recalcTotal() {
+  let total = 0;
+  document.querySelectorAll('#parts-checklist .part-row').forEach(row => {
+    const cb  = row.querySelector('input[type="checkbox"]');
+    const qty = parseFloat(row.querySelector('.qty-input')?.value || 0);
+    const cost= parseFloat(row.dataset.unitCost || 0);
+    if (cb?.checked && qty > 0) total += qty * cost;
+  });
+  const el = document.getElementById('total-display');
+  if (el) el.textContent = '$' + total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+// Re-attach listeners after HTMX swaps the checklist
+document.getElementById('parts-checklist').addEventListener('change', recalcTotal);
+document.getElementById('parts-checklist').addEventListener('input', recalcTotal);
+document.body.addEventListener('htmx:afterSwap', function(e) {
+  if (e.detail.target.id === 'parts-checklist') {
+    recalcTotal();
+    e.detail.target.addEventListener('change', recalcTotal);
+    e.detail.target.addEventListener('input', recalcTotal);
+  }
+});
+</script>
+{% endblock %}

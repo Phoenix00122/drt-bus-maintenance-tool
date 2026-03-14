@@ -1,0 +1,90 @@
+{% if success_msg is defined %}
+<div id="success-banner"
+     class="mx-4 mt-4 px-4 py-2.5 bg-green-50 border border-green-200 rounded-xl text-sm text-green-700 font-medium flex items-center gap-2">
+  <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+  {{ success_msg }}
+</div>
+<script>setTimeout(function(){ var b=document.getElementById('success-banner'); if(b) b.remove(); }, 4000);</script>
+{% endif %}
+
+{% if logs %}
+<div class="divide-y divide-slate-100">
+  {% for log in logs %}
+  {% set parts = log_parts.get(log.id, []) %}
+  {% set lvl = log.service_level or '?' %}
+  <details class="group">
+    <summary class="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 cursor-pointer select-none transition-colors">
+      <!-- Chevron -->
+      <svg class="w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+
+      <!-- PM level badge -->
+      <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-bold shrink-0
+        {% if lvl == 'A' %}bg-green-100 text-green-700
+        {% elif lvl == 'B' %}bg-blue-100 text-blue-700
+        {% elif lvl == 'C' %}bg-orange-100 text-orange-700
+        {% elif lvl == 'D' %}bg-red-100 text-red-700
+        {% elif lvl == 'CVOR' %}bg-purple-100 text-purple-700
+        {% else %}bg-slate-100 text-slate-500
+        {% endif %}">
+        {{ lvl }}
+      </span>
+
+      <!-- Bus info -->
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-sm font-semibold text-slate-800">Bus {{ log.bus_number }}</span>
+          {% if log.model %}<span class="text-xs text-slate-400">· {{ log.model }}</span>{% endif %}
+          {% if log.pm_name %}
+          <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-slate-100 text-slate-500">{{ log.pm_name }}</span>
+          {% endif %}
+        </div>
+        <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+          <span class="text-[11px] text-slate-500">{{ log.service_date }}</span>
+          <span class="text-[11px] text-slate-300">·</span>
+          <span class="text-[11px] text-slate-500">{{ log.mechanic_name }}</span>
+          {% if log.odometer_at_service %}
+          <span class="text-[11px] text-slate-300">·</span>
+          <span class="text-[11px] text-slate-500">{{ "{:,}".format(log.odometer_at_service) }} km</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Cost + part count -->
+      <div class="text-right shrink-0">
+        <div class="text-sm font-bold text-green-700">${{ "{:,.2f}".format(log.total_cost) }}</div>
+        <div class="text-[10px] text-slate-400">{{ parts|length }} part{{ 's' if parts|length != 1 else '' }}</div>
+      </div>
+    </summary>
+
+    <!-- Expanded detail -->
+    <div class="px-5 pb-4 bg-slate-50/60">
+      {% if parts %}
+      <div class="flex flex-wrap gap-1.5 mb-3 pt-2">
+        {% for p in parts %}
+        <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs shadow-sm">
+          <span class="font-mono text-[10px] text-slate-400">{{ p.part_number }}</span>
+          <span class="text-slate-700 font-medium">{{ p.part_name }}</span>
+          {% if p.unit == 'L' %}
+          <span class="bg-blue-50 px-1.5 rounded text-blue-600 text-[10px] font-semibold">{{ p.quantity_used|int }} L</span>
+          {% else %}
+          <span class="bg-slate-100 px-1 rounded text-slate-500 text-[10px]">×{{ p.quantity_used|int }}</span>
+          {% endif %}
+          <span class="text-green-700 font-semibold text-[10px]">${{ "%.2f"|format(p.line_cost) }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if log.notes %}
+      <p class="text-xs text-slate-500 italic border-t border-slate-200 pt-2 mt-1">{{ log.notes }}</p>
+      {% endif %}
+    </div>
+  </details>
+  {% endfor %}
+</div>
+{% else %}
+<div class="px-5 py-12 text-center">
+  <svg class="w-10 h-10 text-slate-200 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+  <p class="text-sm text-slate-400">No service logs yet</p>
+  <p class="text-xs text-slate-300 mt-1">Submit your first entry using the form</p>
+</div>
+{% endif %}
