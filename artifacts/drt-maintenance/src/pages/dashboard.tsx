@@ -3,7 +3,7 @@ import { generateForecast, useGetBuses } from "@workspace/api-client-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { BusFront, AlertTriangle, Hammer, CircleDollarSign, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 
 export default function Dashboard() {
   const { data: buses, isLoading: busesLoading } = useGetBuses();

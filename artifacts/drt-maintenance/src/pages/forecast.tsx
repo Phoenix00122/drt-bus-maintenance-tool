@@ -1,9 +1,9 @@
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 import { generateForecast, useGetBuses, ForecastResponse } from "@workspace/api-client-react";
 import { format } from "date-fns";
 import { CalendarDays, Loader2, Play, Settings2, ShieldAlert, Wrench, AlertCircle, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
 
 export default function Forecast() {
   const { data: buses } = useGetBuses();
